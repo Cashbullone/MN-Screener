@@ -61,7 +61,7 @@ def norm_ticker(t):
 
 
 def wiki_tables(url):
-    r = requests.get(url, headers=UA, timeout=60)
+    r = requests.get(url, headers=UA, timeout=30)
     r.raise_for_status()
     return pd.read_html(io.StringIO(r.text))
 
@@ -89,20 +89,36 @@ def _col(t, names, contains=()):
     return None
 
 
-def ndx_wikipedia():
+def ndx_html(url):
     seen = []
-    for t in wiki_tables("https://en.wikipedia.org/wiki/Nasdaq-100"):
+    for t in wiki_tables(url):
         tc = _col(t, ("ticker", "symbol", "ticker symbol"))
         seen.append("%dx%s:%s" % (len(t), len(t.columns), "/".join(str(c)[:12] for c in t.columns)[:60]))
         if tc is not None and 80 <= len(t) <= 130:
             return pairs(t, tc, _col(t, ("company", "security", "name"), ("company", "security", "name")) or tc)
-    raise RuntimeError("Keine Tabelle mit Ticker-Spalte. Gefunden: " + "; ".join(seen[:8]))
+    raise RuntimeError("Keine Tabelle mit Ticker-Spalte. Gefunden: " + "; ".join(seen[:6]))
+
+
+def ndx_wikipedia():
+    return ndx_html("https://en.wikipedia.org/wiki/Nasdaq-100")
+
+
+def ndx_wikipedia_list():
+    return ndx_html("https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies")
+
+
+def ndx_stockanalysis():
+    return ndx_html("https://stockanalysis.com/list/nasdaq-100-stocks/")
+
+
+def ndx_slickcharts():
+    return ndx_html("https://www.slickcharts.com/nasdaq100")
 
 
 def ndx_nasdaq_api():
     r = requests.get("https://api.nasdaq.com/api/quote/list-type/nasdaq100",
                      headers=dict(UA, Accept="application/json, text/plain, */*", Origin="https://www.nasdaq.com",
-                                  Referer="https://www.nasdaq.com/"), timeout=60)
+                                  Referer="https://www.nasdaq.com/"), timeout=20)
     r.raise_for_status()
     rows = r.json()["data"]["data"]["rows"]
     out = []
@@ -125,7 +141,7 @@ def ndx_file():
 
 def universe_ndx():
     errs = []
-    for fn in (ndx_wikipedia, ndx_nasdaq_api, ndx_file):
+    for fn in (ndx_wikipedia_list, ndx_wikipedia, ndx_stockanalysis, ndx_slickcharts, ndx_nasdaq_api, ndx_file):
         try:
             out = fn()
             log("  Nasdaq-100 aus %s" % fn.__name__)
