@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minervini-Screener</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--yl:#e0a800;--bg:#eef1ec;--card:#fbfcfa;--tx:#17211b;--mut:#5b675f;--bd:#d3dad2;--ok:#1b7a4f;--okbg:#dcefe3;--bad:#b3392f;--warn:#9a6a12;--warnbg:#f4e8c9;--ac:#17211b;--acx:#fbfcfa;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--yl:#f2c94c;--bg:#131a15;--card:#1b241e;--tx:#e8eee9;--mut:#98a69c;--bd:#2c382f;--ok:#4cc38a;--okbg:#1d3a2a;--bad:#ef7b6e;--warn:#e2b552;--warnbg:#3a3014;--ac:#e8eee9;--acx:#131a15;color-scheme:dark}}
+:root[data-theme="dark"]{--yl:#f2c94c;--bg:#131a15;--card:#1b241e;--tx:#e8eee9;--mut:#98a69c;--bd:#2c382f;--ok:#4cc38a;--okbg:#1d3a2a;--bad:#ef7b6e;--warn:#e2b552;--warnbg:#3a3014;--ac:#e8eee9;--acx:#131a15;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1280px;margin:0 auto;padding:20px 16px 40px}
+h1{font:700 28px/1.15 Georgia,"Times New Roman",serif;margin:8px 0 4px}
+h2{font-size:17px;margin:0 0 12px}
+.mut{color:var(--mut)}.small{font-size:13px}
+section{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px;margin:16px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px}
+label{display:block;font-size:14px;color:var(--mut)}
+input,textarea,select{display:block;width:100%;margin-top:4px;padding:10px;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:6px}
+textarea{font-size:13px;resize:vertical}
+input:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{font:inherit;font-weight:600;padding:10px 16px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
+button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.sum{font-size:15px;margin:0 0 4px}
+.card{border-top:1px solid var(--bd);padding:16px 0}
+.card:first-of-type{border-top:0}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.tk{font:700 22px Georgia,serif}
+.badge{font-size:13px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--bd);color:var(--mut)}
+.badge.ok{background:var(--okbg);color:var(--ok)}.badge.rs{background:var(--warnbg);color:var(--warn)}
+.strip{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:10px 0}
+.strip i{height:8px;border-radius:2px;background:var(--bd)}
+.strip i.t{background:var(--ok)}.strip i.f{background:var(--bad)}
+ul.cr{list-style:none;margin:0 0 10px;padding:0;font-size:14px}
+ul.cr li{display:flex;gap:8px;padding:2px 0}
+.t{color:var(--ok)}.f{color:var(--bad)}.n{color:var(--mut)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;font-size:13px;color:var(--mut);margin-bottom:10px}
+.kv b{display:block;color:var(--tx);font-size:15px}
+.size{background:var(--okbg);border-radius:8px;padding:12px;font-size:14px}
+.size .big{font-size:20px;font-weight:700;color:var(--ok)}
+.size.w{background:var(--warnbg)}.size.w .big{color:var(--warn)}
+.ed{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;align-items:end;margin-top:12px}
+.plan{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:12px;font-size:14px;margin-top:10px}
+.plan .big{font-size:18px;font-weight:700;color:var(--warn)}
+.dr{padding:10px 0;border-top:1px solid var(--bd);cursor:pointer}.dr:first-child{border-top:0}
+.dl1{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.dl1 button{margin-left:auto;padding:2px 10px}
+.dt{font:700 17px Georgia,serif;min-width:52px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:-4px}
+.hint{font-size:13px;color:var(--mut);margin-top:2px}
+.cn{font-size:13px;font-weight:400;color:var(--mut);font-family:system-ui,sans-serif;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom}
+.tk+.cn{font-size:15px;max-width:none;white-space:normal}
+@media(min-width:900px){.hint{white-space:nowrap}.dwrap #dlist{flex:1 1 760px}}
+.bar{flex:1;height:8px;background:var(--bd);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}
+.wki{display:inline-block;width:96px;margin:0;padding:3px 8px;font-size:13px;text-transform:uppercase}
+.nb{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;border-radius:99px;color:#fff;font:700 12px system-ui,sans-serif}
+.dwrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.dwrap #dlist{flex:1 1 320px;min-width:0}
+.dpie{flex:0 0 210px;margin:0 auto}
+.dpie svg{width:100%;max-width:210px;height:auto;display:block;margin:0 auto}
+.leg{font-size:13px;margin-top:8px}.leg>div{display:flex;gap:6px;align-items:center;padding:2px 0}
+.ed button{padding:10px 12px}
+#msg{white-space:pre-line}
+input[type=file]{padding:8px}
+.drop{border:2px dashed var(--bd);border-radius:10px;padding:14px;margin-bottom:8px;transition:background .15s,border-color .15s}
+.drop.on{border-color:var(--ok);background:var(--okbg)}
+details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);font-weight:600}
+</style></head><body><main>
+<h1>Minervini-Screener</h1>
+<p class="mut" style="margin:0">Prüft Aktien gegen das Trend Template und berechnet die Positionsgröße nach Risiko pro Trade.</p>
+<p id="dstat" class="small" style="margin:8px 0 0" role="status"></p>
+
+<section id="mkt"><h2>Markt</h2><div id="mktbody"></div></section>
+<section id="depotsec"><h2>Depot</h2>
+<p id="dsum" class="sum"></p>
+<div class="dwrap"><div id="dlist"></div><div id="dpie" class="dpie"></div></div>
+<details style="margin-top:10px"><summary>Position hinzufügen oder ändern</summary>
+<div class="grid" style="margin-top:12px">
+<label>Ticker<input id="ht" autocapitalize="characters" autocomplete="off"></label>
+<label>Einstiegskurs<input id="he" type="number" inputmode="decimal" min="0" step="any"></label>
+<label>Stückzahl<input id="hq" type="number" inputmode="numeric" min="0"></label>
+<label>Schon verkauft (Stück)<input id="hs" type="number" inputmode="numeric" min="0"></label>
+<label>Einstiegsdatum (für Trailing-Stop)<input id="hd" type="date"></label>
+</div>
+<div class="row"><button id="hsave" class="pri">Position speichern</button></div>
+<p id="hmsg" class="mut small" role="status" style="margin:10px 0 0"></p></details>
+<p class="mut small" style="margin:12px 0 0">Rot: Kursbedingung des Templates verletzt, Stop-Loss oder letzte Verkaufsstufe erreicht. Gelb: Verkaufsstufe erreicht, Teilverkauf fällig. Grün: alles in Ordnung. Tippe auf eine Zeile, um die Position zu ändern.</p></section>
+<section><h2>Depot und Risiko</h2>
+<div class="grid">
+<label>Depotgröße (USD) <span id="eqe"></span><input id="eq" type="number" inputmode="decimal" min="0"></label>
+<label>Risiko pro Trade (%)<input id="risk" type="number" inputmode="decimal" min="0" step="0.05"></label>
+<label>Stop-Loss (%)<input id="stop" type="number" inputmode="decimal" min="0" step="0.5"></label>
+<label>Max. Position (% vom Depot)<input id="max" type="number" inputmode="decimal" min="0"></label>
+<label>Max. Positionen (Anzahl)<input id="np" type="number" inputmode="numeric" min="1"></label>
+<label>Wechselkurs (USD je 1 EUR)<input id="fx" type="number" inputmode="decimal" min="0" step="0.0001"></label>
+<label>Stop-Methode<select id="sm"><option value="fix">Fest (% unter Einstieg)</option><option value="trail">Trailing (% unter dem Hoch seit Einstieg)</option><option value="ma50">Unter der 50-Tage-Linie</option></select></label>
+</div>
+<p class="mut small" style="margin:0">Alle Kurse und Beträge werden in USD und in EUR gezeigt. Der Wechselkurs ist ein fester Wert, den du selbst nachführst (Stand 26.10.2026: etwa 1,12). Mit der GitHub-Automatik wird er täglich gesetzt.</p></section>
+
+<section><h2>Filter und Kennzahlen</h2>
+<div class="grid">
+<label>Mindest-RS-Rating<input id="rsm" type="number" inputmode="numeric" min="1" max="99"></label>
+<label>Neu: Serie begann vor höchstens … Handelstagen (0 = aus)<input id="nw" type="number" inputmode="numeric" min="0"></label>
+<label>Volumen hoch ab (Aktien pro Tag)<input id="vh" type="number" inputmode="numeric" min="0"></label>
+<label>Volumen niedrig unter (Aktien pro Tag)<input id="vl" type="number" inputmode="numeric" min="0"></label>
+<label>Markt grün ab (% Aktien über 200-Tage-Linie)<input id="mg" type="number" inputmode="decimal" min="0" max="100"></label>
+<label>Markt rot unter (% über 200-Tage-Linie)<input id="mr" type="number" inputmode="decimal" min="0" max="100"></label>
+<label>Ausbruch: max. Abstand zum 52-Wochen-Hoch (%)<input id="bo" type="number" inputmode="decimal" min="0" step="0.5"></label>
+<label>Ausbruch: Tagesvolumen mindestens (× Ø)<input id="bv" type="number" inputmode="decimal" min="0" step="0.1"></label>
+</div></section>
+<section><h2>Verkaufsregeln</h2>
+<label>Stufen (Anstieg % : Verkauf %), immer vom Einstiegskurs gerechnet<input id="sell" type="text" autocomplete="off" placeholder="25:10, 35:20, 45:30, 60:40, 100:100"></label>
+<label style="margin-top:12px">Der Verkaufsanteil bezieht sich auf<select id="base"><option value="rest">die Restposition</option><option value="orig">die ursprüngliche Position</option></select></label>
+<p class="mut small" style="margin:10px 0 0">Trage deine Positionen oben im Bereich Depot ein, dann zeigt die App, wie viele Aktien du verkaufen solltest.</p></section>
+<section><h2>Kursdaten laden</h2>
+<div id="ixbox" hidden></div>
+<div class="row" id="autorow" hidden style="margin:0 0 12px"><button id="autob" class="pri">Daten jetzt neu abrufen</button></div>
+<div class="drop" id="drop"><label>CSV-Dateien (Yahoo Finance, Stooq) oder Excel-Tabelle (.xlsx), mehrere möglich. Du kannst die Dateien auch in dieses Feld ziehen.<input id="files" type="file" accept=".csv,.txt,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple></label></div>
+<p class="mut small" style="margin:8px 0 16px">Bei CSV-Dateien wird der Ticker aus dem Dateinamen gelesen, etwa AAPL.csv oder aapl.us.txt. In Excel-Tabellen steht er in der ersten Zeile über der Datumsspalte. Du kannst auch eine einzelne Aktie einfügen:</p>
+<div class="grid">
+<label>Ticker<input id="tk" placeholder="z. B. NVDA" autocapitalize="characters" autocomplete="off"></label>
+<label>RS-Rating (optional)<input id="rs" type="number" inputmode="numeric" min="1" max="99"></label>
+<label>Einstiegskurs (optional)<input id="en" type="number" inputmode="decimal" min="0"></label>
+</div>
+<label>CSV-Text einfügen (mind. 253 Handelstage für das RS-Rating, mit Kopfzeile)
+<textarea id="csv" rows="5" placeholder="Date,Open,High,Low,Close,Adj Close,Volume&#10;2025-10-20,…"></textarea></label>
+<div class="row"><button id="add" class="pri">Aktie analysieren</button><button id="demo">Demo laden</button><button id="clr">Liste leeren</button></div>
+<p id="msg" class="mut small" role="status" style="margin:10px 0 0"></p></section>
+
+<section id="out"></section>
+
+<section><h2>Sicherung</h2>
+<p class="mut small" style="margin:0 0 8px">Depot und Einstellungen liegen nur in diesem Browser. Sichere sie als Datei, damit sie bei gelöschtem Browser-Speicher oder einem Gerätewechsel nicht verloren gehen. Kursdaten sind nicht enthalten, die lädst du aus Excel neu.</p>
+<div class="row" style="margin-top:0"><button id="bkx" class="pri">Depot exportieren</button><button id="bki">Depot importieren</button><input id="bkf" type="file" accept=".json,application/json" hidden></div>
+<details style="margin-top:10px"><summary>Als Text kopieren oder einfügen</summary>
+<textarea id="bkt" rows="5" aria-label="Sicherung als Text" placeholder="Hier erscheint der Sicherungstext, oder füge einen gesicherten Text ein."></textarea>
+<div class="row"><button id="bkc">Text erzeugen</button><button id="bkp">Text importieren</button></div></details>
+<p id="bkm" class="mut small" role="status" style="margin:10px 0 0"></p></section>
+<details style="margin-bottom:8px"><summary>So lädst du Kursdaten herunter</summary>
+<p>Yahoo Finance: Aktie öffnen, „Historical Data“ wählen, den Zeitraum auf mindestens 14 Monate stellen und die CSV herunterladen.</p>
+<p>Stooq: Auf stooq.com das Symbol mit Endung .US eingeben (z. B. AAPL.US), „Historical Data“ öffnen, Intervall „Daily“ wählen und „Download data in .csv file“ klicken.</p>
+<p>Beide Formate liest die App ein. Eine Excel-Tabelle (.xlsx) mit den Tickern in der ersten Zeile und je Ticker den Spalten „Datum“ und „Schluss“ (etwa aus der Excel-Funktion STOCKHISTORY) liest sie ebenfalls ein. Hat die Mappe zusätzlich ein Blatt „Tagesaktuell“ mit den Spalten Ticker, Preis, 52-W-H, 52-W-T, KGV, Tagesvolumen und Ø-Volumen, nutzt die App daraus den aktuellen Kurs, die echten 52-Wochen-Werte, das KGV und das Volumen. Unplausible Zeilen ignoriert sie. Ohne dieses Blatt stammen 52-Wochen-Hoch und -Tief aus den Schlusskursen. Die Dateien kannst du gesammelt auswählen. Das RS-Rating berechnet die App automatisch, sobald mehrere Aktien mit mindestens 14 Monaten Kursverlauf geladen sind.</p></details>
+<details><summary>So rechnet die App</summary>
+<p>Trend Template: Kurs über 150- und 200-Tage-Linie, 150 über 200, 200-Tage-Linie steigt seit einem Monat (22 Handelstage), 50 über 150 und 200, Kurs über 50, mindestens 30 % über dem 52-Wochen-Tief, höchstens 25 % unter dem 52-Wochen-Hoch, RS-Rating mindestens so hoch wie eingestellt (Standard 80). Das RS-Rating berechnet die App selbst: Kursentwicklung der letzten 12 Monate (jüngstes Quartal 40 %, die drei davor je 20 %), dann Rang 1 bis 99 unter allen geladenen Aktien. Das ist eine Näherung und nicht identisch mit dem IBD-Wert. Je mehr Aktien du lädst, desto aussagekräftiger wird der Rang. Eigene Werte in der Aktienkarte haben Vorrang.</p>
+<p>Positionsgröße: Stück = Depot × Risiko % ÷ (Einstieg × Stop %). Die Position wird zusätzlich auf den Maximalanteil am Depot begrenzt. Bei vielen Kandidaten fasst die App die obersten Titel der Liste zusammen, solange sie ins Depot passen und die eingestellte Maximalzahl an Positionen nicht überschritten ist. Verkaufsregeln: Der Gewinn wird immer vom Einstiegskurs gerechnet, und jede erreichte Stufe verkauft den eingestellten Anteil. Mit Stückzahl rechnet die App Aktien aus, „Schon verkauft“ zieht bereits ausgeführte Verkäufe ab. Bei Kursen unter dem Stop-Loss meldet die App den Verkauf der gesamten Position. Das Datum „erfüllt seit“ gilt für die Kriterien 1 bis 7 und zeigt den Beginn der aktuellen ununterbrochenen Serie, geprüft mit Schlusskursen. Das RS-Rating fehlt dort, weil es nur für den letzten Tag berechnet wird. Sortierung: zuerst Aktien mit erfülltem Trend Template, davon die mit dem neuesten Datum zuerst, bei gleichem Datum nach höherem RS-Rating, danach die übrigen. Kaufkandidat ist, wer das Trend Template neu erfüllt (Serie begann vor höchstens der eingestellten Zahl an Handelstagen) und mindestens das eingestellte RS-Rating hat. Das Handelsvolumen ist der Durchschnitt der letzten 50 Tage, „hoch“ und „niedrig“ richten sich nach den eingestellten Schwellen. Depot-Ampel: Rot bei verletzter Kursbedingung des Templates (Kriterien 1 bis 7), erreichtem Stop-Loss oder erreichter letzter Verkaufsstufe. Gelb, wenn eine Verkaufsstufe erreicht ist und noch Aktien zu verkaufen sind. Sonst Grün. Das RS-Rating zählt für die Ampel nicht.</p>
+<p>Marktampel: Die App zählt unter allen geladenen Aktien, wie viele über ihrer 200- und 50-Tage-Linie schließen. Grün: mindestens der eingestellte Anteil über der 200-Tage-Linie (Standard 60 %) und mindestens 50 % über der 50-Tage-Linie. Rot: weniger als der eingestellte Anteil (Standard 45 %) über der 200-Tage-Linie oder weniger als 35 % über der 50-Tage-Linie. Sonst Gelb. Das ist die Breite deiner Liste und kein Index, die Schwellen sind meine Richtwerte. Die Ampel sperrt keine Kandidaten, sie warnt nur.</p>
+<p>Ausbruchssignal: Kriterien 1 bis 7 erfüllt, der Kurs liegt höchstens den eingestellten Abstand (Standard 5 %) unter dem 52-Wochen-Hoch und das Tagesvolumen ist mindestens so hoch wie eingestellt (Standard 1,4-mal Ø). Dafür braucht die App das Blatt „Tagesaktuell“.</p>
+<p>Stop-Methoden: „Fest“ liegt den eingestellten Prozentsatz unter dem Einstiegskurs. „Trailing“ liegt denselben Prozentsatz unter dem höchsten Schlusskurs seit dem Einstiegsdatum, nie tiefer als der feste Stop. „50-Tage-Linie“ nutzt die 50-Tage-Linie als Stop, nie tiefer als der feste Stop. Die Positionsgröße beim Kauf rechnet immer mit dem festen Stop.</p></details>
+<p class="mut small">Wenn die Seite über GitHub Pages läuft, holt sie die täglich aktualisierten Kurse selbst. Sonst arbeitet sie mit deinen CSV- oder Excel-Dateien. Keine Anlageberatung.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s),K='mvn1';
+let S={cfg:{eq:50000,risk:1.25,stop:7.5,max:25},items:[]};
+try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12},S.cfg);
+S.hold=S.hold||{};
+S.ixf=Object.assign({SP500:true,NDX:true,R2000:true},S.ixf);
+const IXN={SP500:'S&P 500',NDX:'Nasdaq-100',R2000:'Russell 2000'};
+const inIx=it=>!it.ix||!it.ix.length||!!S.hold[it.t]||it.ix.some(k=>S.ixf[k]!==false);
+const vis=()=>S.items.filter(inIx);
+let idbOk=false,idbP=null;
+const idbOpen=()=>idbP||(idbP=new Promise((ok,no)=>{try{const r=indexedDB.open('mvn',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}catch(e){no(e)}}));
+const idbTx=(m,f)=>idbOpen().then(d=>new Promise((ok,no)=>{const t=d.transaction('kv',m),q=f(t.objectStore('kv'));t.oncomplete=()=>ok(q&&q.result);t.onerror=()=>no(t.error);t.onabort=()=>no(t.error)}));
+const fullSave=()=>{try{localStorage.setItem(K,JSON.stringify(S));return true}catch(e){return false}};
+const save=()=>{
+  if(!idbOk){fullSave();return}
+  const o=Object.assign({},S);delete o.items;delete o.daily;delete o.meta;
+  idbTx('readwrite',st=>st.put({items:S.items,daily:S.daily||{},meta:S.meta||null},'data')).then(()=>{try{localStorage.setItem(K,JSON.stringify(o))}catch(e){}}).catch(()=>{idbOk=false;fullSave()});
+};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const f2=n=>n.toLocaleString('de-DE',{maximumFractionDigits:2,minimumFractionDigits:2});
+const fxr=()=>S.cfg.fx>0?S.cfg.fx:1.12;
+const eur0=n=>(n/fxr()).toLocaleString('de-DE',{maximumFractionDigits:0})+' €';
+const eur2=n=>(n/fxr()).toLocaleString('de-DE',{maximumFractionDigits:2,minimumFractionDigits:2})+' €';
+const usd=n=>'$'+n.toLocaleString('de-DE',{maximumFractionDigits:0})+' / '+eur0(n);
+const px=n=>f2(n)+' $ / '+eur2(n);
+const NAMES={"MMM":"3M","AOS":"A. O. Smith","ABT":"Abbott Laboratories","ABBV":"AbbVie","ACN":"Accenture","ADBE":"Adobe Inc.","AMD":"Advanced Micro Devices","AES":"AES Corporation","AFL":"Aflac","A":"Agilent Technologies","APD":"Air Products","ABNB":"Airbnb","AKAM":"Akamai Technologies","ALB":"Albemarle Corporation","ARE":"Alexandria Real Estate Equities","ALGN":"Align Technology","ALLE":"Allegion","LNT":"Alliant Energy","ALL":"Allstate","GOOGL":"Alphabet Inc. (Class A)","GOOG":"Alphabet Inc. (Class C)","MO":"Altria","AMZN":"Amazon","AMCR":"Amcor","AEE":"Ameren","AEP":"American Electric Power","AXP":"American Express","AIG":"American International Group","AMT":"American Tower","AWK":"American Water Works","AMP":"Ameriprise Financial","AME":"Ametek","AMGN":"Amgen","APH":"Amphenol","ADI":"Analog Devices","AON":"Aon plc","APA":"APA Corporation","APO":"Apollo Global Management","AAPL":"Apple Inc.","AMAT":"Applied Materials","APP":"AppLovin","APTV":"Aptiv","ACGL":"Arch Capital Group","ADM":"Archer Daniels Midland","ARES":"Ares Management","ANET":"Arista Networks","AJG":"Arthur J. Gallagher & Co.","AIZ":"Assurant","T":"AT&T","ATO":"Atmos Energy","ADSK":"Autodesk","ADP":"Automatic Data Processing","AZO":"AutoZone","AVY":"Avery Dennison","AXON":"Axon Enterprise","BKR":"Baker Hughes","BALL":"Ball Corporation","BAC":"Bank of America","BAX":"Baxter International","BDX":"Becton Dickinson","BRK-B":"Berkshire Hathaway","BBY":"Best Buy","TECH":"Bio-Techne","BIIB":"Biogen","BLK":"BlackRock","BX":"Blackstone Inc.","XYZ":"Block, Inc.","BE":"Bloom Energy","BNY":"BNY Mellon","BA":"Boeing","BKNG":"Booking Holdings","BSX":"Boston Scientific","BMY":"Bristol Myers Squibb","AVGO":"Broadcom","BR":"Broadridge Financial Solutions","BRO":"Brown & Brown","BF-B":"Brown–Forman","BG":"Bunge Global","BXP":"BXP, Inc.","CHRW":"C.H. Robinson","CDNS":"Cadence Design Systems","CPT":"Camden Property Trust","COF":"Capital One","CAH":"Cardinal Health","CCL":"Carnival Corporation","CARR":"Carrier Global","CVNA":"Carvana","CASY":"Casey's","CAT":"Caterpillar Inc.","CBOE":"Cboe Global Markets","CBRE":"CBRE Group","CDW":"CDW Corporation","COR":"Cencora","CNC":"Centene Corporation","CNP":"CenterPoint Energy","CF":"CF Industries","CRL":"Charles River Laboratories","SCHW":"Charles Schwab Corporation","CHTR":"Charter Communications","CVX":"Chevron Corporation","CMG":"Chipotle Mexican Grill","CB":"Chubb Limited","CHD":"Church & Dwight","CIEN":"Ciena","CI":"Cigna","CINF":"Cincinnati Financial","CTAS":"Cintas","CSCO":"Cisco","C":"Citigroup","CFG":"Citizens Financial Group","CLX":"Clorox","CME":"CME Group","CMS":"CMS Energy","KO":"Coca-Cola Company (The)","CTSH":"Cognizant","COHR":"Coherent Corp.","COIN":"Coinbase","CL":"Colgate-Palmolive","CMCSA":"Comcast","FIX":"Comfort Systems USA","COP":"ConocoPhillips","ED":"Consolidated Edison","STZ":"Constellation Brands","CEG":"Constellation Energy","COO":"Cooper Companies (The)","CPRT":"Copart","GLW":"Corning Inc.","CPAY":"Corpay","CSGP":"CoStar Group","COST":"Costco","CRH":"CRH plc","CRWD":"CrowdStrike","CCI":"Crown Castle","CSX":"CSX Corporation","CMI":"Cummins","CVS":"CVS Health","DHR":"Danaher Corporation","DRI":"Darden Restaurants","DDOG":"Datadog","DVA":"DaVita","DECK":"Deckers Brands","DE":"Deere & Company","DELL":"Dell Technologies","DAL":"Delta Air Lines","DVN":"Devon Energy","DXCM":"Dexcom","FANG":"Diamondback Energy","DLR":"Digital Realty","DG":"Dollar General","DLTR":"Dollar Tree","D":"Dominion Energy","DPZ":"Domino's","DASH":"DoorDash","DOV":"Dover Corporation","DOW":"Dow Inc.","DHI":"D. R. Horton","DTE":"DTE Energy","DUK":"Duke Energy","DD":"DuPont","ETN":"Eaton Corporation","EBAY":"eBay Inc.","ECHO":"EchoStar","ECL":"Ecolab","EIX":"Edison International","EW":"Edwards Lifesciences","ELV":"Elevance Health","EME":"Emcor","EMR":"Emerson Electric","ETR":"Entergy","EOG":"EOG Resources","EQT":"EQT Corporation","EFX":"Equifax","EQIX":"Equinix","ERIE":"Erie Indemnity","ESS":"Essex Property Trust","EL":"Estée Lauder Companies (The)","EG":"Everest Group","EVRG":"Evergy","P":"Everpure","ES":"Eversource Energy","EXC":"Exelon","EXE":"Expand Energy","EXPE":"Expedia Group","EXPD":"Expeditors International","EXR":"Extra Space Storage","XOM":"ExxonMobil","FFIV":"F5, Inc.","FDS":"FactSet","FICO":"Fair Isaac","FAST":"Fastenal","FRT":"Federal Realty Investment Trust","FDX":"FedEx","FDXF":"FedEx Freight","FERG":"Ferguson Enterprises","FIS":"Fidelity National Information Services","FITB":"Fifth Third Bancorp","FSLR":"First Solar","FE":"FirstEnergy","FISV":"Fiserv","FLEX":"Flex Ltd.","F":"Ford Motor Company","FTNT":"Fortinet","FTV":"Fortive","FOXA":"Fox Corporation (Class A)","FOX":"Fox Corporation (Class B)","BEN":"Franklin Resources","FCX":"Freeport-McMoRan","GRMN":"Garmin","IT":"Gartner","GE":"GE Aerospace","GEHC":"GE HealthCare","GEV":"GE Vernova","GEN":"Gen Digital","GNRC":"Generac","GD":"General Dynamics","GIS":"General Mills","GM":"General Motors","GPC":"Genuine Parts Company","GILD":"Gilead Sciences","GPN":"Global Payments","GL":"Globe Life","GDDY":"GoDaddy","GS":"Goldman Sachs","HAL":"Halliburton","HIG":"Hartford (The)","HAS":"Hasbro","HCA":"HCA Healthcare","DOC":"Healthpeak Properties","HSIC":"Henry Schein","HSY":"Hershey Company (The)","HPE":"Hewlett Packard Enterprise","HLT":"Hilton Worldwide","HD":"Home Depot (The)","HONA":"Honeywell Aerospace","HON":"Honeywell Technologies","HRL":"Hormel Foods","HST":"Host Hotels & Resorts","HWM":"Howmet Aerospace","HPQ":"HP Inc.","HUBB":"Hubbell Incorporated","HUM":"Humana","HBAN":"Huntington Bancshares","HII":"Huntington Ingalls Industries","IBM":"IBM","IEX":"IDEX Corporation","IDXX":"Idexx Laboratories","ITW":"Illinois Tool Works","ILMN":"Illumina, Inc.","INCY":"Incyte","IR":"Ingersoll Rand","PODD":"Insulet Corporation","INTC":"Intel","IBKR":"Interactive Brokers","ICE":"Intercontinental Exchange","IFF":"International Flavors & Fragrances","IP":"International Paper","INTU":"Intuit","ISRG":"Intuitive Surgical","IVZ":"Invesco","INVH":"Invitation Homes","IQV":"IQVIA","IRM":"Iron Mountain","JBHT":"J.B. Hunt","JBL":"Jabil","JKHY":"Jack Henry & Associates","J":"Jacobs Solutions","JNJ":"Johnson & Johnson","JCI":"Johnson Controls","JPM":"JPMorgan Chase","KVUE":"Kenvue","KDP":"Keurig Dr Pepper","KEY":"KeyCorp","KEYS":"Keysight Technologies","KMB":"Kimberly-Clark","KIM":"Kimco Realty","KMI":"Kinder Morgan","KKR":"KKR & Co.","KLAC":"KLA Corporation","KHC":"Kraft Heinz","KR":"Kroger","LHX":"L3Harris","LH":"Labcorp","LRCX":"Lam Research","LVS":"Las Vegas Sands","LDOS":"Leidos","LEN":"Lennar","LII":"Lennox International","LLY":"Lilly (Eli)","LIN":"Linde plc","LYV":"Live Nation Entertainment","LMT":"Lockheed Martin","L":"Loews Corporation","LOW":"Lowe's","LULU":"Lululemon Athletica","LITE":"Lumentum","LYB":"LyondellBasell","MTB":"M&T Bank","MPC":"Marathon Petroleum","MAR":"Marriott International","MRSH":"Marsh McLennan","MLM":"Martin Marietta Materials","MRVL":"Marvell Technology","MAS":"Masco","MA":"Mastercard","MKC":"McCormick & Company","MCD":"McDonald's","MCK":"McKesson","MDT":"Medtronic","MRK":"Merck & Co.","META":"Meta Platforms","MET":"MetLife","MTD":"Mettler Toledo","MGM":"MGM Resorts","MCHP":"Microchip Technology","MU":"Micron Technology","MSFT":"Microsoft","MAA":"Mid-America Apartment Communities","MRNA":"Moderna","MDLZ":"Mondelez International","MPWR":"Monolithic Power Systems","MNST":"Monster Beverage","MCO":"Moody's Corporation","MS":"Morgan Stanley","MOS":"Mosaic Company (The)","MSI":"Motorola Solutions","MSCI":"MSCI","NDAQ":"Nasdaq, Inc.","NTAP":"NetApp","NFLX":"Netflix","NEM":"Newmont","NWSA":"News Corp (Class A)","NWS":"News Corp (Class B)","NEE":"NextEra Energy","NKE":"Nike, Inc.","NI":"NiSource","NDSN":"Nordson Corporation","NSC":"Norfolk Southern","NTRS":"Northern Trust","NOC":"Northrop Grumman","NCLH":"Norwegian Cruise Line Holdings","NRG":"NRG Energy","NUE":"Nucor","NVDA":"Nvidia","NVR":"NVR, Inc.","NXPI":"NXP Semiconductors","ORLY":"O'Reilly Automotive","OXY":"Occidental Petroleum","ODFL":"Old Dominion","OMC":"Omnicom Group","ON":"ON Semiconductor","OKE":"Oneok","ORCL":"Oracle Corporation","OTIS":"Otis Worldwide","PCAR":"Paccar","PKG":"Packaging Corporation of America","PLTR":"Palantir Technologies","PANW":"Palo Alto Networks","PH":"Parker Hannifin","PAYX":"Paychex","PYPL":"PayPal","PNR":"Pentair","PEP":"PepsiCo","PFE":"Pfizer","PCG":"PG&E Corporation","PM":"Philip Morris International","PSX":"Phillips 66","PNW":"Pinnacle West Capital","PNC":"PNC Financial Services","PPG":"PPG Industries","PPL":"PPL Corporation","PFG":"Principal Financial Group","PG":"Procter & Gamble","PGR":"Progressive Corporation","PLD":"Prologis","PRU":"Prudential Financial","PEG":"Public Service Enterprise Group","PTC":"PTC Inc.","PSA":"Public Storage","PHM":"PulteGroup","Q":"Qnity Electronics","QCOM":"Qualcomm","PWR":"Quanta Services","DGX":"Quest Diagnostics","RL":"Ralph Lauren Corporation","RJF":"Raymond James Financial","RDDT":"Reddit","O":"Realty Income","REG":"Regency Centers","REGN":"Regeneron Pharmaceuticals","RF":"Regions Financial Corporation","RSG":"Republic Services","RMD":"ResMed","RVTY":"Revvity","HOOD":"Robinhood Markets","ROK":"Rockwell Automation","ROL":"Rollins, Inc.","ROP":"Roper Technologies","ROST":"Ross Stores","RCL":"Royal Caribbean Group","RTX":"RTX Corporation","SPGI":"S&P Global","CRM":"Salesforce","SNDK":"Sandisk","SBAC":"SBA Communications","SLB":"Schlumberger","STX":"Seagate Technology","SRE":"Sempra","NOW":"ServiceNow","SHW":"Sherwin-Williams","SPG":"Simon Property Group","SKYD":"Skydance","SWKS":"Skyworks Solutions","SJM":"J.M. Smucker Company (The)","SW":"Smurfit Westrock","SNA":"Snap-on","SOLV":"Solventum","SO":"Southern Company","LUV":"Southwest Airlines","SWK":"Stanley Black & Decker","SBUX":"Starbucks","STT":"State Street Corporation","STLD":"Steel Dynamics","STE":"Steris","SYK":"Stryker Corporation","SMCI":"Supermicro","SYF":"Synchrony Financial","SNPS":"Synopsys","SYY":"Sysco","TMUS":"T-Mobile US","TROW":"T. Rowe Price","TTWO":"Take-Two Interactive","TPR":"Tapestry, Inc.","TRGP":"Targa Resources","TGT":"Target Corporation","TEL":"TE Connectivity","TDY":"Teledyne Technologies","TER":"Teradyne","TSLA":"Tesla, Inc.","TXN":"Texas Instruments","TPL":"Texas Pacific Land Corporation","TXT":"Textron","TMO":"Thermo Fisher Scientific","TJX":"TJX Companies","TKO":"TKO Group Holdings","TSCO":"Tractor Supply","TT":"Trane Technologies","TDG":"TransDigm Group","TRV":"Travelers Companies (The)","TRMB":"Trimble Inc.","TFC":"Truist Financial","TWLO":"Twilio","TYL":"Tyler Technologies","TSN":"Tyson Foods","USB":"U.S. Bancorp","UBER":"Uber","UDR":"UDR, Inc.","ULTA":"Ulta Beauty","UNP":"Union Pacific Corporation","UAL":"United Airlines Holdings","UPS":"United Parcel Service","URI":"United Rentals","UNH":"UnitedHealth Group","UHS":"Universal Health Services","VLO":"Valero Energy","VEEV":"Veeva Systems","VTR":"Ventas","VLTO":"Veralto","VRSN":"Verisign","VRSK":"Verisk Analytics","VZ":"Verizon","VRTX":"Vertex Pharmaceuticals","VRT":"Vertiv","VTRS":"Viatris","VICI":"Vici Properties","V":"Visa Inc.","VST":"Vistra Corp.","VMRK":"Vivmark Residential","VMC":"Vulcan Materials Company","VYLR":"Vylor","WRB":"W. R. Berkley Corporation","GWW":"W. W. Grainger","WAB":"Wabtec","WMT":"Walmart","DIS":"Walt Disney Company (The)","WM":"Waste Management","WAT":"Waters Corporation","WEC":"WEC Energy Group","WFC":"Wells Fargo","WELL":"Welltower","WST":"West Pharmaceutical Services","WDC":"Western Digital","WY":"Weyerhaeuser","WSM":"Williams-Sonoma, Inc.","WMB":"Williams Companies","WTW":"Willis Towers Watson","WDAY":"Workday, Inc.","WYNN":"Wynn Resorts","XEL":"Xcel Energy","XYL":"Xylem Inc.","YUM":"Yum! Brands","ZBRA":"Zebra Technologies","ZBH":"Zimmer Biomet","ZTS":"Zoetis"};
+const nmOf=t=>{const it=S.items.find(x=>x.t===t);return (it&&it.nm)||NAMES[normT(t)]||''};
+const nmH=t=>{const n=nmOf(t);return n?' <span class="cn">'+esc(n)+'</span>':''};
+const tkn=t=>{const n=nmOf(t);return esc(t)+(n?' ('+esc(n)+')':'')};
+const msg=t=>$('#msg').textContent=t;
+
+const HN={date:['date','data','datum'],close:['close','zamkniecie','zamknięcie','schluss','schlusskurs'],high:['high','najwyzszy','najwyższy','hoch'],low:['low','najnizszy','najniższy','tief'],tk:['ticker','symbol'],vol:['volume','volumen','wolumen','vol']};
+const pos=(h,k)=>h.findIndex(x=>HN[k].includes(x));
+function parse(t){
+  const L=t.replace(/^\uFEFF/,'').trim().split(/\r?\n/).filter(x=>x.trim());
+  const norm=l=>l.split(/[,;\t]/).map(x=>x.replace(/["<>]/g,'').trim().toLowerCase());
+  const hr=L.slice(0,5).findIndex(l=>pos(norm(l),'close')>=0||norm(l).includes('adj close'));
+  if(hr<0)return null;
+  const hl=L[hr],sep=['\t',';',','].map(s=>[s,hl.split(s).length]).sort((a,b)=>b[1]-a[1])[0][0];
+  const h=hl.split(sep).map(x=>x.replace(/["<>]/g,'').trim().toLowerCase());
+  let ci=pos(h,'close');if(ci<0)ci=h.indexOf('adj close');
+  const di=pos(h,'date'),hi=pos(h,'high'),li=pos(h,'low'),ti=pos(h,'tk'),vi=pos(h,'vol');
+  const num=(c,i)=>{if(i<0)return NaN;let s=(c[i]||'').replace(/"/g,'');s=sep===';'?s.replace(',','.'):s.replace(/,/g,'');return parseFloat(s)};
+  const dt=s=>/^\d{8}$/.test(s)?Date.UTC(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6)):Date.parse(s);
+  let rows=[],tk=null;
+  L.slice(hr+1).forEach((l,k)=>{
+    const c=l.split(sep).map(x=>x.replace(/"/g,'').trim()),p=num(c,ci);
+    if(!isFinite(p))return;
+    if(ti>=0&&!tk&&c[ti])tk=c[ti].toUpperCase().replace(/\.US$/,'');
+    const hv=num(c,hi),lv=num(c,li);
+    rows.push({d:di>=0?dt(c[di]):k,p,h:isFinite(hv)?hv:p,l:isFinite(lv)?lv:p,v:num(c,vi)});
+  });
+  if(di>=0&&rows.every(r=>isFinite(r.d)))rows.sort((a,b)=>a.d-b.d);
+  const tt=di>=0&&rows.every(r=>isFinite(r.d))?ttSince(rows.map(r=>r.p),rows.map(r=>r.d)):null;
+  const vv=rows.slice(-50).map(r=>r.v).filter(x=>isFinite(x)&&x>=0),av=vv.length>=25?vv.reduce((a,b)=>a+b,0)/vv.length:null;
+  rows=rows.slice(-260);
+  return {tk,tt,av,dd:(di>=0&&rows.every(r=>isFinite(r.d)))?rows.map(r=>Math.floor(r.d/864e5)):null,c:rows.map(r=>r.p),h:rows.map(r=>r.h),l:rows.map(r=>r.l)};
+}
+
+const sma=(a,n,off=0)=>{const e=a.length-off;if(e<n)return null;let s=0;for(let i=e-n;i<e;i++)s+=a[i];return s/n};
+
+function calc(it){
+  const c=it.c,dq=it.dq&&it.dq.ok?it.dq:null,p=dq?dq.p:c[c.length-1],w=Math.min(252,c.length);
+  const s50=sma(c,50),s150=sma(c,150),s200=sma(c,200),s200p=sma(c,200,22);
+  const hi=dq?Math.max(dq.hi,p):(it.hi??Math.max(...it.h.slice(-w))),lo=dq?Math.min(dq.lo,p):(it.lo??Math.min(...it.l.slice(-w))),rs=it.rs??it.ra??null,M=S.cfg.rsm||80,nw=S.cfg.nw??5,age=it.tt&&it.tt.a!=null?it.tt.a:null;
+  const t=[
+    ['Kurs über 150- und 200-Tage-Linie',s150&&s200?p>s150&&p>s200:null],
+    ['150-Tage-Linie über 200-Tage-Linie',s150&&s200?s150>s200:null],
+    ['200-Tage-Linie steigt seit 1 Monat',s200&&s200p?s200>s200p:null],
+    ['50-Tage-Linie über 150- und 200-Tage-Linie',s50&&s150&&s200?s50>s150&&s50>s200:null],
+    ['Kurs über 50-Tage-Linie',s50?p>s50:null],
+    ['Kurs mindestens 30 % über 52-Wochen-Tief',p>=lo*1.3],
+    ['Kurs höchstens 25 % unter 52-Wochen-Hoch',p>=hi*0.75],
+    ['RS-Rating mindestens '+M+(rs==null?'':it.rs==null?' (automatisch: '+rs+')':' ('+rs+')'),rs==null?null:rs>=M]
+  ];
+  const cnt=t.filter(x=>x[1]===true).length,all7=t.slice(0,7).every(x=>x[1]===true);
+  const fr=nw<=0||(age!=null&&age<=nw),st=all7&&rs!=null&&rs>=M?(fr?'ok':'old'):all7&&rs==null?'rs':'no';
+  const dist=hi>0?(hi-p)/hi*100:null,rel=dq&&dq.vol>0&&dq.avg>0?dq.vol/dq.avg:null,bo=all7&&dist!=null&&dist<=(S.cfg.bo??5)&&rel!=null&&rel>=(S.cfg.bv??1.4);
+  return {p,s50,s150,s200,hi,lo,t,cnt,st,rs,dist,rel,bo,rank:st==='ok'?3:st==='old'?2:st==='rs'?1:0};
+}
+
+function size(it,p){
+  const {eq,risk,stop,max}=S.cfg;
+  if(!(eq>0&&risk>0&&stop>0&&max>0))return null;
+  const en=it.en||p,rps=en*stop/100;
+  const byRisk=Math.floor(eq*risk/100/rps),byMax=Math.floor(eq*max/100/en);
+  const sh=Math.max(0,Math.min(byRisk,byMax)),pos=sh*en;
+  return {en,sh,pos,pct:pos/eq*100,rk:sh*rps,rkp:sh*rps/eq*100,sl:en-rps,cap:byMax<byRisk};
+}
+
+let showAll=false;
+function compact(it){
+  if(it.h){const w=Math.min(252,it.c.length);it.hi=Math.max(...it.h.slice(-w));it.lo=Math.min(...it.l.slice(-w));delete it.h;delete it.l}
+  return it;
+}
+function autoRS(){
+  const V=vis(),sc=V.map(it=>{const c=it.c,n=c.length;if(n<253)return null;const p=c[n-1];return .4*p/c[n-64]+.2*p/c[n-127]+.2*p/c[n-190]+.2*p/c[n-253]});
+  const v=sc.filter(x=>x!=null).sort((a,b)=>a-b),N=v.length;
+  V.forEach((it,i)=>{
+    if(sc[i]==null||N<2){it.ra=null;return}
+    const below=v.filter(x=>x<sc[i]).length;
+    it.ra=Math.max(1,Math.min(99,Math.round(1+98*below/(N-1))));
+  });
+  return N;
+}
+function stopLvl(it,p){
+  const fix=it.en*(1-S.cfg.stop/100),m=S.cfg.sm||'fix';
+  if(m==='ma50'){const s=sma(it.c,50);if(s)return {lvl:Math.max(fix,s),txt:'50-Tage-Linie'}}
+  if(m==='trail'&&it.ed&&it.dd){
+    const i0=it.dd.findIndex(d=>d>=it.ed),pk=Math.max(p,...(i0<0?[]:it.c.slice(i0)));
+    return {lvl:Math.max(fix,pk*(1-S.cfg.stop/100)),txt:'Trailing-Stop vom Hoch '+f2(pk)};
+  }
+  return {lvl:fix,txt:'fix',miss:m==='trail'};
+}
+function levels(){return String(S.cfg.sellTxt||'').split(/[;\n]+|,\s+/).map(s=>s.split(':').map(x=>parseFloat(x.replace(',','.')))).filter(a=>a.length===2&&a[0]>0&&a[1]>0&&a[1]<=100).sort((a,b)=>a[0]-b[0])}
+function calcPlan(it,p){
+  if(!(it.en>0))return null;
+  const L=levels(),g=(p/it.en-1)*100,q=it.qty>0?Math.floor(it.qty):0,tot=q||1,orig=S.cfg.base==='orig';
+  let rem=tot,hitN=0,hits=0;
+  const st=L.map(([lv,pc])=>{
+    let n=pc>=100?rem:Math.min(rem,(orig?tot:rem)*pc/100);
+    if(q)n=Math.min(rem,Math.round(n));
+    rem-=n;
+    const hit=g>=lv;if(hit){hitN+=n;hits++}
+    return {lv,pc,n,hit,price:it.en*(1+lv/100)};
+  });
+  const sl=stopLvl(it,p),stop=sl.lvl,sold=q?Math.floor(it.sold||0):0;
+  return {g,st,q,tot,hits,hitN,todo:q?Math.max(0,hitN-sold):hitN,stop,stopTxt:sl.txt,stopMiss:sl.miss,stopHit:q>0&&p<=stop,L};
+}
+function sellSig(it,p){const pl=calcPlan(it,p);return !pl?0:((it.qty>0?pl.todo>0:pl.hits>0)||pl.stopHit)?2:it.qty>0?1:0}
+function planHtml(it,p){
+  const pl=calcPlan(it,p);if(!pl)return '';
+  const hold=pl.q>0,orig=S.cfg.base==='orig',sg=pl.hits>0||pl.stopHit,sgn=v=>(v>=0?'+':'')+f2(v)+' %';
+  let head='<div class="big">Kein Verkaufssignal</div>';
+  if(pl.stopHit)head='<div class="big" style="color:var(--bad)">Stop-Loss erreicht: gesamte Position verkaufen</div>';
+  else if(pl.hits>0)head=`<div class="big">Verkaufssignal, Stufe ${pl.hits} von ${pl.L.length}</div>`+(hold?(pl.todo>0?`Jetzt verkaufen: ${pl.todo.toLocaleString('de-DE')} Aktien (${usd(pl.todo*p)})`:'Alle fälligen Stufen sind laut deinen Angaben schon verkauft.'):`Insgesamt ${f2(pl.hitN/pl.tot*100)} % der Position verkaufen`);
+  const rows=pl.st.map(s=>`<li>${s.hit?'<span class="t">✓</span>':'<span class="n">–</span>'}<span>bei ${sgn(s.lv)} (Kurs ${px(s.price)}): ${s.pc>=100?'Rest':s.pc+' % '+(orig?'der Position':'der Restposition')} verkaufen${hold?' ('+s.n.toLocaleString('de-DE')+' Aktien)':''}</span></li>`).join('');
+  return `<div class="plan"${sg?' style="border-color:var(--warn)"':''}><div class="small mut">Gewinn seit Einstieg ${sgn(pl.g)}${hold?' · Stop-Loss bei '+px(pl.stop):''}</div>${head}<ul class="cr" style="margin:8px 0 0">${rows}</ul></div>`;
+}
+function ttSince(c,d){
+  const n=c.length;if(n<252||!d)return null;
+  const P=[0];for(let i=0;i<n;i++)P.push(P[i]+c[i]);
+  const sm=(k,i)=>(P[i+1]-P[i+1-k])/k;
+  const ok=i=>{
+    const p=c[i],s50=sm(50,i),s150=sm(150,i),s200=sm(200,i),sp=sm(200,i-22);
+    let hi=0,lo=1e12;for(let k=i-251;k<=i;k++){if(c[k]>hi)hi=c[k];if(c[k]<lo)lo=c[k]}
+    return p>s150&&p>s200&&s150>s200&&s200>sp&&s50>s150&&s50>s200&&p>s50&&p>=lo*1.3&&p>=hi*.75;
+  };
+  if(!ok(n-1))return null;
+  let i=n-1;
+  while(i>251&&ok(i-1))i--;
+  return {d:d[i],lb:i===251,a:n-1-i};
+}
+function ttLine(it,r){
+  if(!r.t.slice(0,7).every(x=>x[1]===true))return '';
+  if(!it.tt)return '<div class="small mut" style="margin-top:6px">Erfüllt seit: unbekannt (Datei neu laden)</div>';
+  return `<div class="small" style="margin-top:6px;color:var(--ok)">Kriterien 1 bis 7 erfüllt ${it.tt.lb?'mindestens ':''}seit ${new Date(it.tt.d).toLocaleDateString('de-DE',{timeZone:'UTC'})}${it.tt.lb||it.tt.a==null?'':it.tt.a===0?' (am letzten Handelstag)':' (vor '+it.tt.a+' Handelstag'+(it.tt.a>1?'en':'')+')'}</div>`;
+}
+function volLine(it,r){
+  const dv=it.dq&&it.dq.ok?it.dq:null,av=dv?dv.avg:it.av;
+  if(!av)return '';
+  const f=n=>n.toLocaleString('de-DE',{notation:'compact',maximumFractionDigits:1}),{vh,vl}=S.cfg;
+  const k=av>=vh?['hoch','var(--ok)']:av<vl?['niedrig','var(--bad)']:['mittel','var(--warn)'];
+  return `<div class="small" style="margin-top:4px">Ø ${dv?'Volumen':'Handelsvolumen (50 Tage)'}: ${f(av)} Aktien, ca. $${f(av*r.p)} / ${f(av*r.p/fxr())} € pro Tag · <b style="color:${k[1]}">${k[0]}</b>${dv&&dv.vol>0?` · Tagesvolumen <b style="color:${dv.vol/dv.avg>=1.4?'var(--ok)':'inherit'}">${(dv.vol/dv.avg).toLocaleString('de-DE',{maximumFractionDigits:1})}× Ø</b>`:''}</div>`;
+}
+function syncHold(){S.items.forEach(it=>{const h=S.hold[it.t];if(h){it.en=h.en;it.qty=h.qty;it.sold=h.sold;it.ed=h.ed||null}else if(it.qty){it.qty=null;it.sold=null;it.ed=null}})}
+function depotRows(){
+  return Object.values(S.hold).map(h=>{
+    const it=S.items.find(x=>x.t===h.t);
+    if(!it)return {h,lv:3,txt:'Keine Kursdaten geladen'};
+    if((h.sold||0)>=h.qty)return {h,lv:3,txt:'Vollständig verkauft'};
+    const r=calc(it),pl=calcPlan(it,r.p),val=(h.qty-(h.sold||0))*r.p;
+    const fails=r.t.slice(0,7).filter(x=>x[1]===false).map(x=>x[0]);
+    const full=pl.st.some(s=>s.hit&&s.pc>=100)&&pl.todo>0;
+    let lv=0,txt;
+    if(pl.stopHit||full||fails.length){
+      lv=2;
+      txt=pl.stopHit?'Stop erreicht (Kurs unter '+px(pl.stop)+(pl.stopTxt==='fix'?'':', '+pl.stopTxt)+'): gesamte Position verkaufen':full?'Letzte Verkaufsstufe erreicht: Rest verkaufen':'Template verletzt ('+fails.length+' von 7 Kursbedingungen): '+fails.slice(0,2).join('; ')+(fails.length>2?' und '+(fails.length-2)+' weitere':'');
+      if(!full&&!pl.stopHit&&pl.hits>0&&pl.todo>0)txt+='. Zusätzlich Verkaufsstufe '+pl.hits+': '+pl.todo.toLocaleString('de-DE')+' Aktien verkaufen';
+    }else if(pl.hits>0&&pl.todo>0){lv=1;txt='Verkaufsstufe '+pl.hits+' erreicht: '+pl.todo.toLocaleString('de-DE')+' Aktien verkaufen'}
+    else{const nx=pl.st.find(s=>!s.hit);txt=(pl.hits>0?'Fällige Stufen erledigt. ':'')+'Template erfüllt'+(r.rs!=null?', RS '+r.rs:'')+(nx?'. Nächste Stufe bei '+px(nx.price)+' (+'+nx.lv+' %)':'')+'. Stop bei '+px(pl.stop)+(pl.stopTxt==='fix'?'':' ('+pl.stopTxt+')')+(pl.stopMiss?' (Trailing braucht Einstiegsdatum und neu geladene Kursdatei, bis dahin gilt der feste Stop)':'')}
+    return {h,r,pl,val,lv,txt};
+  });
+}
+const wki=h=>`<input class="wki" data-wkn="${esc(h.t)}" value="${esc(h.wkn||'')}" placeholder="WKN Hebel" maxlength="12" autocomplete="off" aria-label="WKN des Hebelprodukts für ${esc(h.t)}">`;
+const pcol=i=>'hsl('+((i-1)*37+8)+' 58% 44%)';
+function drawPie(rows,tv){
+  const el=$('#dpie'),a=rows.filter(x=>x.lv<3&&x.val>0);
+  if(!a.length){el.innerHTML='';return}
+  let ang=-Math.PI/2,sl='',lg='';
+  const P=(t,r)=>[(100+r*Math.cos(t)).toFixed(2),(100+r*Math.sin(t)).toFixed(2)];
+  a.forEach(x=>{
+    const fr=x.val/tv,a1=ang+fr*2*Math.PI,[x0,y0]=P(ang,90),[x1,y1]=P(a1,90),[mx,my]=P((ang+a1)/2,58);
+    sl+=a.length===1?`<circle cx="100" cy="100" r="90" fill="${pcol(x.no)}"><title>${esc(x.h.t)} 100 %</title></circle>`:`<path d="M100 100L${x0} ${y0}A90 90 0 ${fr>.5?1:0} 1 ${x1} ${y1}Z" fill="${pcol(x.no)}" stroke="var(--card)" stroke-width="2"><title>${esc(x.h.t)} ${f2(fr*100)} %</title></path>`;
+    if(fr>=.05)sl+=`<text x="${mx}" y="${my}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="15" font-weight="700">${x.no}</text>`;
+    lg+=`<div><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span>${tkn(x.h.t)}</span><span class="mut" style="margin-left:auto">${f2(fr*100)} %</span></div>`;
+    ang=a1;
+  });
+  el.innerHTML=`<svg viewBox="0 0 200 200" role="img" aria-label="Depotgewichtung">${sl}</svg><div class="leg">${lg}<div class="mut small">Anteil an der Summe der Positionen</div></div>`;
+}
+function renderDepot(){
+  const rows=depotRows(),eq=S.cfg.eq||1,col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'];
+  rows.forEach((x,i)=>x.no=i+1);
+  const act=rows.filter(x=>x.lv<3),cnt=[0,1,2].map(k=>act.filter(x=>x.lv===k).length),tv=act.reduce((s,x)=>s+x.val,0);
+  $('#dsum').innerHTML=rows.length?`${[2,1,0].map(k=>`<span class="dot" style="background:${col[k]}"></span> ${cnt[k]} ${nm[k]}`).join(' &nbsp; ')} · ${act.length} Position${act.length===1?'':'en'}, Wert ${usd(tv)} (${f2(tv/eq*100)} % vom Depot)`:'Noch keine Positionen im Depot.';
+  drawPie(rows,tv);
+  $('#dlist').innerHTML=rows.map(x=>x.lv===3?
+    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:var(--mut)">${x.no}</span><span class="dot" style="background:var(--bd)"></span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span class="mut small">${x.txt}</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div></div>`:
+    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span>${px(x.r.p)}</span><span style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div><div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div></div>`).join('');
+}
+function normT(t){return String(t).trim().toUpperCase().replace(/\*/g,'').replace(/[\s.]+/g,'-')}
+function syncDaily(){
+  S.items.forEach(it=>{
+    const d=S.daily&&S.daily[normT(it.t)];
+    if(!d){it.dq=null;return}
+    const c=it.c,p0=c[c.length-1],w=c.slice(-252),mx=Math.max(...w),mn=Math.min(...w);
+    const ok=[d.p,d.hi,d.lo,d.avg,d.vol].every(x=>typeof x==='number')&&d.p>0&&d.hi>0&&d.lo>0&&d.lo<=d.hi&&d.avg>0&&d.vol>=0&&Math.abs(d.p/p0-1)<=.25&&d.hi>=mx*.97&&d.hi<=mx*1.3&&d.lo<=mn*1.03&&d.lo>=mn*.7;
+    it.dq=Object.assign({ok},d);
+  });
+}
+function peLine(it){const d=it.dq&&it.dq.ok?it.dq:null;if(!d)return '';return `<div class="small mut" style="margin-top:4px">KGV: ${d.pe>0?f2(d.pe):'nicht verfügbar'}</div>`}
+function card(it,r){
+  const z=r.st==='no'?null:size(it,r.p);
+  const badge=S.hold[it.t]?['','Im Depot']:r.st==='ok'?['ok','Kaufkandidat: neu, RS ab '+(S.cfg.rsm||80)]:r.st==='old'?['rs','Erfüllt, aber nicht neu']:r.st==='rs'?['rs','7 von 7 – RS-Rating fehlt']:['','Nicht erfüllt ('+r.cnt+' von 8)'];
+  const ic=v=>v===true?'<span class="t">✓</span>':v===false?'<span class="f">✗</span>':'<span class="n">–</span>';
+  let sz='';
+  if(r.st==='ok'||r.st==='rs'){
+    sz=z?(z.sh<1?'<div class="size w">Bei diesen Einstellungen ist keine ganze Aktie möglich. Erhöhe das Risiko oder die Positionsgrenze.</div>':
+      `<div class="size"><div class="big">${z.sh.toLocaleString('de-DE')} Aktien · ${usd(z.pos)}</div>
+      ${f2(z.pct)} % vom Depot, Risiko ${usd(z.rk)} (${f2(z.rkp)} %)<br>
+      Einstieg ${px(z.en)}, Stop-Loss ${px(z.sl)}${z.cap?'<br>Begrenzt durch die maximale Positionsgröße.':''}</div>`)
+      :'<div class="size w">Bitte Depot, Risiko, Stop-Loss und Maximalposition größer als 0 eintragen.</div>';
+  }else sz='<div class="mut small">'+(r.st==='old'?'Kein Kaufkandidat: Das Trend Template ist nicht neu erfüllt.':'Kein Kaufkandidat, solange nicht alle Kriterien erfüllt sind.')+'</div>';
+  return `<div class="card" data-t="${esc(it.t)}">
+  <div class="top"><span><span class="tk">${esc(it.t)}</span>${nmH(it.t)}</span><span class="badge ${badge[0]}">${badge[1]}</span></div>
+  ${ttLine(it,r)}${boLine(it,r)}${volLine(it,r)}${peLine(it)}<div class="strip" aria-hidden="true">${r.t.map(x=>`<i class="${x[1]===true?'t':x[1]===false?'f':''}"></i>`).join('')}</div>
+  <ul class="cr">${r.t.map(x=>`<li>${ic(x[1])}<span>${x[0]}</span></li>`).join('')}</ul>
+  <div class="kv"><span>Kurs<b>${px(r.p)}</b></span><span>50 / 150 / 200<b>${[r.s50,r.s150,r.s200].map(v=>v?f2(v):'–').join(' / ')}</b></span><span>52-Wochen Tief / Hoch<b>${f2(r.lo)} / ${f2(r.hi)}</b><span class="mut">${eur2(r.lo)} / ${eur2(r.hi)}</span></span></div>
+  ${it.qty>0&&it.en>0?'':sz}${planHtml(it,r.p)}
+  <div class="ed"><label>RS-Rating<input data-f="rs" type="number" inputmode="numeric" min="1" max="99" value="${it.rs??''}" placeholder="${it.ra!=null?'auto '+it.ra:''}"></label>
+  <label>Einstiegskurs<input data-f="en" type="number" inputmode="decimal" min="0" value="${it.en??''}" placeholder="${f2(r.p)}"${S.hold[it.t]?' disabled':''}></label>
+  
+  
+  <button data-del aria-label="${esc(it.t)} entfernen">Entfernen</button></div></div>`;
+}
+
+function breadth(off){
+  let n=0,a50=0,a200=0;
+  vis().forEach(it=>{const c=it.c,L=c.length;if(L<200+off)return;const p=c[L-1-off],s50=sma(c,50,off),s200=sma(c,200,off);if(!s50||!s200)return;n++;if(p>s50)a50++;if(p>s200)a200++});
+  return {n,a50:n?a50/n*100:0,a200:n?a200/n*100:0};
+}
+function renderMarket(res){
+  const b=breadth(0),b1=breadth(22),el=$('#mktbody');
+  if(b.n<50){S.mkt=null;el.innerHTML='<p class="mut small" style="margin:0">Für die Marktampel braucht die App mindestens 50 Aktien mit je 200 Handelstagen Kursverlauf. Geladen: '+b.n+'.</p>';return}
+  const mg=S.cfg.mg??60,mr=S.cfg.mr??45,lv=b.a200>=mg&&b.a50>=50?0:(b.a200<mr||b.a50<35)?2:1;
+  S.mkt=lv;
+  const tpl=res.filter(x=>x.r.t.slice(0,7).every(y=>y[1]===true)).length;
+  const col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'],tx=['Käufe erlaubt','Vorsicht, nur die stärksten Titel','Keine neuen Käufe'];
+  const bar=(v,w)=>`<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span class="small" style="flex:0 0 140px">${w}</span><span class="bar"><i style="width:${Math.max(0,Math.min(100,v)).toFixed(0)}%"></i></span><b style="flex:0 0 78px;text-align:right;white-space:nowrap">${f2(v)} %</b></div>`;
+  el.innerHTML=`<p class="sum" style="margin:0 0 8px"><span class="dot" style="background:${col[lv]}"></span> <b>${nm[lv]}</b> · ${tx[lv]}</p>`+bar(b.a200,'über 200-Tage-Linie')+bar(b.a50,'über 50-Tage-Linie')+`<p class="mut small" style="margin:8px 0 0">${b1.n>=50?`Vor einem Monat: ${f2(b1.a200)} % über der 200-Tage-Linie, ${f2(b1.a50)} % über der 50-Tage-Linie. `:''}${tpl} von ${b.n} Aktien (${f2(tpl/b.n*100)} %) erfüllen die Kursbedingungen des Trend Templates. Grundlage sind die geladenen Aktien mit Schlusskursen, also die Breite deiner Liste und kein Index.</p>`;
+}
+function mktWarn(){return S.mkt===2?'<p class="sum" style="color:var(--bad)"><b>Marktampel Rot:</b> neue Käufe besser vermeiden.</p>':S.mkt===1?'<p class="sum" style="color:var(--warn)"><b>Marktampel Gelb:</b> nur die stärksten Titel kaufen.</p>':''}
+function boLine(it,r){
+  if(!r.bo)return '';
+  return `<div class="small" style="margin-top:6px;color:var(--ok)"><b>Ausbruchssignal:</b> Kurs ${f2(r.dist)} % unter dem 52-Wochen-Hoch, Tagesvolumen ${f2(r.rel)}× Ø</div>`;
+}
+function syncInputs(){
+  ['eq','risk','stop','max','np','fx','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{$('#'+k).value=S.cfg[k]});
+  $('#sell').value=S.cfg.sellTxt;$('#base').value=S.cfg.base;$('#sm').value=S.cfg.sm;
+}
+function backupObj(){return {v:1,app:'minervini-screener',saved:new Date().toISOString().slice(0,10),cfg:S.cfg,hold:S.hold}}
+function applyBackup(txt){
+  let o;try{o=JSON.parse(txt)}catch(e){return 'Das ist keine gültige Sicherung (kein lesbarer Text).'}
+  if(!o||o.app!=='minervini-screener'||!o.hold||typeof o.hold!=='object')return 'Das ist keine Sicherung dieses Screeners.';
+  const hold={};let n=0;
+  for(const k in o.hold){const h=o.hold[k];if(h&&typeof h.t==='string'&&h.t&&h.en>0&&h.qty>0){const q=Math.floor(h.qty);hold[h.t]={t:h.t,en:+h.en,qty:q,sold:Math.max(0,Math.min(Math.floor(h.sold||0),q)),wkn:String(h.wkn||'').slice(0,12).toUpperCase(),ed:isFinite(h.ed)&&h.ed>0?+h.ed:null};n++}}
+  if(o.cfg&&typeof o.cfg==='object')for(const k in S.cfg){if(k in o.cfg&&typeof o.cfg[k]===typeof S.cfg[k])S.cfg[k]=o.cfg[k]}
+  S.hold=hold;save();syncInputs();render();
+  return n+' Position'+(n===1?'':'en')+' und die Einstellungen importiert. Das bisherige Depot wurde ersetzt.';
+}
+function renderIx(){
+  const el=$('#ixbox');if(!el)return;
+  const cnt={};S.items.forEach(i=>(i.ix||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
+  const ks=Object.keys(IXN).filter(k=>cnt[k]);
+  if(!ks.length){el.hidden=true;return}
+  el.hidden=false;
+  el.innerHTML='<div class="small mut" style="margin-bottom:4px">Welche Indizes sollen gescreent werden? Das RS-Rating wird unter den gewählten Aktien gerechnet.</div><div class="row" style="margin:0 0 12px;gap:16px">'+ks.map(k=>`<label style="display:flex;gap:6px;align-items:center;color:var(--tx)"><input type="checkbox" data-ix="${k}" style="width:auto;margin:0"${S.ixf[k]!==false?' checked':''}> ${IXN[k]} (${cnt[k]})</label>`).join('')+'</div>';
+}
+function importPrices(j){
+  const D=j.dates,old=new Map(S.items.map(x=>[x.t,x])),items=[],daily={};
+  for(const s of j.stocks){
+    const c=[],dd=[];
+    s.c.forEach((v,i)=>{if(typeof v==='number'&&v>0){c.push(v);dd.push(D[i])}});
+    if(c.length<200)continue;
+    const w=Math.min(252,c.length),o=old.get(s.t);
+    items.push({t:s.t,c,dd:c.length===D.length?D:dd,hi:Math.max(...c.slice(-w)),lo:Math.min(...c.slice(-w)),rs:o&&o.rs!=null?o.rs:null,en:o&&o.en!=null?o.en:null,ix:s.ix,nm:s.n||'',tt:ttSince(c,dd.map(d=>d*864e5)),av:s.av>0?s.av:null});
+    daily[normT(s.t)]={p:s.p,hi:s.hi,lo:s.lo,pe:s.pe!=null?s.pe:null,vol:s.vol,avg:s.av};
+  }
+  const ts=new Set(items.map(x=>x.t));
+  S.items=S.items.filter(x=>!x.ix&&!ts.has(x.t)).concat(items);
+  S.daily=daily;
+  if(j.fx>0){S.cfg.fx=j.fx;syncInputs()}
+  S.meta={at:Date.now(),file:'GitHub-Automatik',gen:j.generated};
+  save();render();
+  return items.length;
+}
+let autoOK=false;
+async function autoLoad(force){
+  let j;
+  try{
+    const r=await fetch('data/prices.json',{cache:'no-cache'});
+    if(!r.ok)return;
+    j=await r.json();
+  }catch(e){return}
+  if(!j||!Array.isArray(j.stocks)||!Array.isArray(j.dates))return;
+  autoOK=true;$('#autorow').hidden=false;
+  if(!force&&S.meta&&S.meta.gen===j.generated&&S.items.some(x=>x.ix)){render();return}
+  msg('Hole die aktuellen Kurse …');
+  const n=importPrices(j);
+  msg(n+' Aktien automatisch geladen (Stand '+j.asof+').'+(j.fx>0?' Wechselkurs: 1 € = '+j.fx.toLocaleString('de-DE',{minimumFractionDigits:4})+' $.':'')+(j.failed&&j.failed.length?'\nNicht abrufbar: '+j.failed.length+' Ticker.':''));
+}
+$('#autob').onclick=()=>autoLoad(true);
+$('#ixbox').onchange=e=>{const k=e.target&&e.target.dataset&&e.target.dataset.ix;if(!k)return;S.ixf[k]=e.target.checked;save();render()};
+function renderStatus(){
+  const el=$('#dstat');if(!el)return;
+  if(!S.items.length){el.innerHTML='<span class="mut">Noch keine Kursdaten geladen. Läuft die Seite über GitHub Pages, erscheinen sie in wenigen Sekunden. Sonst lade unten eine Excel-Tabelle oder CSV-Dateien.</span>';return}
+  const days=S.items.map(i=>i.dd&&i.dd.length?i.dd[i.dd.length-1]:0).filter(x=>x>0),last=days.length?Math.max(...days):0;
+  const dfmt=d=>new Date(d*864e5).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'});
+  const now=new Date(),e=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()));
+  do{e.setUTCDate(e.getUTCDate()-1)}while(e.getUTCDay()===0||e.getUTCDay()===6);
+  const exp=Math.round(e.getTime()/864e5),m=S.meta,nd=Object.keys(S.daily||{}).length;
+  const parts=[last?'Kursdaten bis <b>'+dfmt(last)+'</b>':'Kursdaten ohne Datum',S.items.length+' Aktien',nd?'Tagesaktuell: '+nd+' Zeilen':'<span style="color:var(--warn)">ohne Blatt „Tagesaktuell“ (kein Ausbruchssignal, kein KGV)</span>'];
+  if(m&&m.at)parts.push('geladen am '+new Date(m.at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+(m.file?' ('+esc(m.file)+')':''));
+  let h=parts.join(' · ');
+  if(last&&last<exp)h+='<br><span style="color:var(--warn)"><b>Hinweis:</b> Es fehlen Börsentage bis '+dfmt(exp)+'. Lade die aktuelle Excel-Tabelle, sonst rechnet die App mit alten Kursen.</span>';
+  else if(!last)h+='<br><span class="mut">Das Alter der Daten lässt sich nicht prüfen. Neu geladene Excel-Dateien enthalten die Datumsangaben.</span>';
+  el.innerHTML=h;
+}
+function render(){
+  renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();syncHold();renderDepot();
+  const res=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}}).sort((a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0));
+  renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
+  const all=res.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),cand=[];let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>S.cfg.eq)break;cand.push(z);tp0+=z.pos}
+  const tp=cand.reduce((s,z)=>s+z.pos,0),tr=cand.reduce((s,z)=>s+z.rk,0),eq=S.cfg.eq;
+  const sum=cand.length?`${all.length} Kandidat${all.length>1?'en':''}${cand.length<all.length?`, die obersten ${cand.length} der Liste zusammen (begrenzt durch Depot und Max. Positionen)`:' zusammen'}: ${usd(tp)} (${f2(tp/eq*100)} % vom Depot), Gesamtrisiko ${usd(tr)} (${f2(tr/eq*100)} %).${tp>eq?' Das übersteigt dein Depot, wähle also nur die stärksten Titel.':''}`:'Aktuell kein Kandidat, der alle Kriterien erfüllt.';
+  const note=N>=2?`<p class="mut small">RS-Rating automatisch berechnet: Rang 1 bis 99 unter ${N} geladenen Aktien (Kursentwicklung der letzten 12 Monate, jüngstes Quartal doppelt gewichtet).${N<30?' Bei so wenigen Aktien hat der Rang wenig Aussagekraft, lade mehr Aktien für ein belastbares Rating.':''} Von dir eingetragene Werte haben Vorrang.</p>`:'<p class="mut small">Für das automatische RS-Rating braucht die App mindestens 2 Aktien mit je 253 Handelstagen (ca. 14 Monate Kursverlauf).</p>';
+  const bos=res.filter(x=>x.r.bo&&!S.hold[x.it.t]),sell=res.filter(x=>x.sg===2),top=res.filter(x=>x.r.st==='ok'&&x.ts&&!S.hold[x.it.t]),mx=Math.max(0,...top.map(x=>x.ts)),fresh=top.filter(x=>x.ts===mx);
+  const lim=showAll?res.length:25,more=res.length-lim;
+  $('#out').innerHTML='<h2>Ergebnisse</h2>'+(sell.length?`<p class="sum" style="color:var(--warn)"><b>${sell.length} Verkaufssignal${sell.length>1?'e':''}:</b> ${sell.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(fresh.length?`<p class="sum"><b>Zuletzt hinzugekommen (seit ${new Date(mx).toLocaleDateString('de-DE',{timeZone:'UTC'})}):</b> ${fresh.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(bos.length?`<p class="sum" style="color:var(--ok)"><b>Ausbruchssignale:</b> ${bos.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+mktWarn()+'<p class="sum">'+sum+'</p>'+note+(S.items.some(x=>x.av||(x.dq&&x.dq.ok))?'':'<p class="mut small">Für die Kennzahl Handelsvolumen braucht die Datei eine Volumen-Spalte, z. B. in Excel Datum, Schluss und Volumen je Ticker.</p>')+res.slice(0,lim).map(x=>card(x.it,x.r)).join('')+(more>0?`<div class="row"><button data-all>${more} weitere anzeigen</button></div>`:'');
+}
+
+function add(it){S.items=S.items.filter(x=>x.t!==it.t);S.items.push(compact(it));save();render()}
+function addMany(a){const old=new Map(S.items.map(x=>[x.t,x]));a.forEach(n=>{const o=old.get(n.t);if(o){if(n.rs==null&&o.rs!=null)n.rs=o.rs;if(n.en==null&&o.en!=null)n.en=o.en}});const ts=new Set(a.map(x=>x.t));S.items=S.items.filter(x=>!ts.has(x.t)).concat(a.map(compact));save();render()}
+
+$('#add').onclick=()=>{
+  const t=$('#tk').value.trim().toUpperCase();
+  if(!t){msg('Bitte einen Ticker eintragen.');return}
+  const d=parse($('#csv').value);
+  if(!d){msg('Keine Kursdaten erkannt. Die CSV braucht eine Kopfzeile mit „Close“.');return}
+  if(d.c.length<200){msg('Zu wenig Daten: Es braucht mindestens 200 Handelstage, gefunden wurden '+d.c.length+'.');return}
+  const rs=parseFloat($('#rs').value),en=parseFloat($('#en').value);
+  add({t,c:d.c,h:d.h,l:d.l,dd:d.dd,tt:d.tt,av:d.av,rs:isFinite(rs)?rs:null,en:isFinite(en)?en:null});
+  msg(d.c.length<222?t+' hinzugefügt. Für den Trend der 200-Tage-Linie fehlen Daten (mind. 222 Handelstage).':t+' hinzugefügt.');
+  ['#tk','#rs','#en','#csv'].forEach(s=>$(s).value='');
+};
+
+const SY={d:['datum','date','data'],c:['schluss','schlusskurs','close','adj close','zamkniecie'],v:['volumen','volume','vol']};
+function parseGrid(g){
+  const nz=v=>typeof v==='string'?v.trim().toLowerCase():'';
+  const r2=g.slice(0,6).findIndex(r=>r.some(v=>SY.c.includes(nz(v))));
+  const items=[],bad=[];
+  if(r2<1)return {items,bad:['Keine Kopfzeile mit „Schluss“ oder „Close“ gefunden (die Ticker müssen eine Zeile darüber stehen). Gelesen: '+g.length+' Zeilen, '+(g[0]||[]).length+' Spalten.']};
+  const sub=g[r2],tkr=g[r2-1],seen=new Set();
+  for(let j=1;j<sub.length;j++){
+    if(!SY.c.includes(nz(sub[j]))||!SY.d.includes(nz(sub[j-1])))continue;
+    const t=String(tkr[j-1]??tkr[j]??'').trim().toUpperCase().replace(/\.US$/,'');
+    if(!t){bad.push('Spalte '+(j+1)+': kein Ticker über der Datumsspalte');continue}
+    seen.add(t);
+    const m=new Map(),mv=new Map(),vj=SY.v.includes(nz(sub[j+1]))?j+1:-1;
+    for(let i=r2+1;i<g.length;i++){const d=g[i][j-1],p=g[i][j];if(typeof d==='number'&&typeof p==='number'&&p>0){m.set(d,p);const v=vj>0?g[i][vj]:null;if(typeof v==='number'&&v>=0)mv.set(d,v)}}
+    const da=[...m.keys()].sort((a,b)=>a-b),ds=da.slice(-260);
+    if(ds.length<200){bad.push(t+': nur '+ds.length+' gültige Kurse, es braucht mindestens 200');continue}
+    const c=ds.map(d=>+m.get(d).toFixed(4)),w=Math.min(252,c.length);
+    items.push({t,c,dd:ds.map(d=>d-25569),hi:Math.max(...c.slice(-w)),lo:Math.min(...c.slice(-w)),rs:null,en:null,tt:ttSince(da.map(d=>m.get(d)),da.map(d=>Math.round((d-25569)*864e5))),av:(()=>{const vv=da.slice(-50).map(d=>mv.get(d)).filter(x=>x!=null);return vv.length>=25?vv.reduce((a,b)=>a+b,0)/vv.length:null})()});
+  }
+  tkr.forEach(v=>{if(typeof v==='string'&&v.trim()){const t=v.trim().toUpperCase().replace(/\.US$/,'');if(!seen.has(t))bad.push(t+': keine Kursdaten (Formel in Excel prüfen)')}});
+  return {items,bad};
+}
+function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>no(new Error('Die Excel-Bibliothek (cdnjs) konnte nicht geladen werden. Prüfe die Internetverbindung und Werbeblocker.'));document.head.appendChild(s)})}
+async function readXlsx(f){
+  msg('Lese Excel-Datei, das kann bei großen Tabellen einige Sekunden dauern …');
+  await loadXlsx();await new Promise(r=>setTimeout(r,30));
+  const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellFormula:false,cellHTML:false}),out=[];
+  wb.SheetNames.forEach(n=>{
+    const ws=wb.Sheets[n];if(!ws||!ws['!ref'])return;
+    const rg=XLSX.utils.decode_range(ws['!ref']),g=[];
+    for(let r=rg.s.r;r<=rg.e.r;r++){const row=[];for(let c=rg.s.c;c<=rg.e.c;c++){const x=ws[XLSX.utils.encode_cell({r,c})];row.push(x&&(x.t==='n'||x.t==='s')?x.v:null)}g.push(row)}
+    out.push({name:n,g});
+  });
+  return out;
+}
+let ck=0;
+$('#clr').onclick=e=>{
+  if(Date.now()-ck<4000){S.items=[];showAll=false;save();render();msg('Liste geleert.');e.target.textContent='Liste leeren';ck=0}
+  else{ck=Date.now();e.target.textContent='Nochmal klicken zum Leeren';setTimeout(()=>{if(ck)e.target.textContent='Liste leeren'},4000)}
+};
+const DH={tk:['ticker','symbol'],p:['preis','price','kurs'],hi:['52-w-h','52w-h','52-wochen-hoch'],lo:['52-w-t','52w-t','52-wochen-tief'],pe:['kgv','p/e','pe'],vol:['tagesvolumen','volumen'],avg:['ø-volumen','ø volumen','durchschnittsvolumen']};
+function parseDaily(g){
+  const nz=v=>typeof v==='string'?v.trim().toLowerCase():'';
+  const hr=g.slice(0,6).findIndex(r=>r.some(v=>DH.tk.includes(nz(v)))&&r.some(v=>DH.p.includes(nz(v))));
+  if(hr<0)return null;
+  const col={};Object.keys(DH).forEach(k=>col[k]=g[hr].findIndex(v=>DH[k].includes(nz(v))));
+  const map={};
+  for(let i=hr+1;i<g.length;i++){
+    const r=g[i],t=normT(r[col.tk]??'');if(!t)continue;
+    const n=k=>col[k]>=0&&typeof r[col[k]]==='number'?r[col[k]]:null;
+    map[t]={p:n('p'),hi:n('hi'),lo:n('lo'),pe:n('pe'),vol:n('vol'),avg:n('avg')};
+  }
+  return {map};
+}
+const tkName=n=>n.replace(/\.(csv|txt)$/i,'').replace(/\s*\(\d+\)$/,'').replace(/_d$/i,'').replace(/[._]us$/i,'').trim().toUpperCase();
+$('#files').onclick=e=>{e.target.value=''};
+async function loadFiles(fs){
+  const ok=[],bad=[];let dly=null,xl=null;
+  for(const f of fs){
+    try{
+      if(/\.xlsx?$/i.test(f.name)){
+        S.daily={};xl=f.name;
+        for(const {name,g} of await readXlsx(f)){const dd=parseDaily(g);if(dd){dly=dd;continue}const r=parseGrid(g);ok.push(...r.items);bad.push(...r.bad.map(x=>name+': '+x))}
+        if(dly)S.daily=dly.map;
+        continue;
+      }
+      const d=parse(await f.text());
+      if(!d)bad.push(f.name+': keine Spalte „Close“ gefunden');
+      else if(d.c.length<200)bad.push(f.name+': nur '+d.c.length+' Handelstage, es braucht mindestens 200');
+      else ok.push({t:d.tk||tkName(f.name),c:d.c,h:d.h,l:d.l,dd:d.dd,rs:null,en:null,tt:d.tt,av:d.av});
+    }catch(x){bad.push(f.name+': '+(x&&x.message?x.message:'Datei nicht lesbar'))}
+  }
+  if(ok.length===1&&fs.length===1){
+    const o=ok[0],t=$('#tk').value.trim().toUpperCase(),rs=parseFloat($('#rs').value),en=parseFloat($('#en').value);
+    if(t)o.t=t;if(isFinite(rs))o.rs=rs;if(isFinite(en))o.en=en;
+    ['#tk','#rs','#en'].forEach(s=>$(s).value='');
+  }
+  if(xl||ok.length){S.meta=Object.assign({},S.meta||{},{at:Date.now(),file:xl||(fs.length===1?fs[0].name:fs.length+' Dateien')});if(xl&&!dly)S.meta.nodaily=true}
+  if(ok.length)addMany(ok);else if(dly||xl){save();render()}
+  let dmsg='';
+  if(dly){
+    syncDaily();
+    const ks=Object.keys(S.daily),miss=ks.filter(k=>!S.items.some(i=>normT(i.t)===k)),inv=S.items.filter(i=>i.dq&&!i.dq.ok).map(i=>i.t);
+    dmsg='\nTagesaktuell: '+(ks.length-miss.length-inv.length)+' von '+ks.length+' Zeilen übernommen.'+(miss.length?' Kein Kursverlauf für: '+miss.slice(0,12).join(', ')+'.':'')+(inv.length?' Unplausible Werte bei: '+inv.slice(0,12).join(', ')+' (dort gelten die Schlusskurse).':'');
+  }
+  msg((ok.length?ok.length+' Aktie'+(ok.length>1?'n':'')+' geladen'+(ok.length<=12?': '+ok.map(x=>x.t).join(', '):'')+'.':'Keine Datei geladen.')+dmsg+(bad.length?'\nÜbersprungen:\n'+bad.join('\n'):''));
+  
+}
+$('#files').onchange=e=>{loadFiles([...e.target.files])};
+const dz=$('#drop');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('on')}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('on')}));
+dz.addEventListener('drop',e=>{const fs=[...(e.dataTransfer&&e.dataTransfer.files||[])];if(fs.length)loadFiles(fs)});
+window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
+$('#demo').onclick=()=>{
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  [['DEMO-UP',.0022,78],['DEMO-DOWN',-.0018,null],['DEMO-SIDE',0,40]].forEach(([t,d,rs])=>{
+    let p=60;const c=[];
+    for(let i=0;i<260;i++){p*=1+d+(rnd()-.5)*.022;c.push(+p.toFixed(2))}
+    add({t,c,h:c.map(x=>+(x*1.008).toFixed(2)),l:c.map(x=>+(x*.992).toFixed(2)),rs,en:null});
+  });
+  msg('Demo-Daten sind zufällig erzeugt und keine echten Kurse.');
+};
+
+['eq','risk','stop','max','np','fx','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{
+  const e=$('#'+k);e.value=S.cfg[k];
+  e.oninput=()=>{const v=parseFloat(e.value);S.cfg[k]=isFinite(v)?v:0;save();render()};
+});
+
+$('#sell').value=S.cfg.sellTxt;$('#sell').oninput=e=>{S.cfg.sellTxt=e.target.value;save();render()};
+$('#base').value=S.cfg.base;$('#base').onchange=e=>{S.cfg.base=e.target.value;save();render()};
+$('#sm').value=S.cfg.sm;$('#sm').onchange=e=>{S.cfg.sm=e.target.value;save();render()};
+$('#dlist').addEventListener('change',e=>{
+  const t=e.target.dataset&&e.target.dataset.wkn;
+  if(!t||!S.hold[t])return;
+  S.hold[t].wkn=e.target.value.trim().toUpperCase();save();render();
+});
+$('#dlist').addEventListener('click',e=>{
+  if(e.target.closest('input'))return;
+  const d=e.target.closest('[data-hdel]');
+  if(d){delete S.hold[d.dataset.hdel];save();render();return}
+  const r=e.target.closest('[data-e]');
+  if(r){const h=S.hold[r.dataset.e];if(!h)return;$('#ht').value=h.t;$('#he').value=h.en;$('#hq').value=h.qty;$('#hs').value=h.sold||'';$('#hd').value=h.ed?new Date(h.ed*864e5).toISOString().slice(0,10):'';$('#depotsec details').open=true;$('#he').focus()}
+});
+$('#hsave').onclick=()=>{
+  const t=$('#ht').value.trim().toUpperCase(),en=parseFloat($('#he').value),qty=Math.floor(parseFloat($('#hq').value)),sold=Math.floor(parseFloat($('#hs').value)||0),m=$('#hmsg');
+  if(!t){m.textContent='Bitte einen Ticker eintragen.';return}
+  if(!(en>0)||!(qty>0)){m.textContent='Einstiegskurs und Stückzahl müssen größer als 0 sein.';return}
+  S.hold[t]={t,en,qty,sold:Math.min(sold,qty),wkn:(S.hold[t]&&S.hold[t].wkn)||'',ed:$('#hd').value?Math.floor(Date.parse($('#hd').value)/864e5):null};save();render();
+  m.textContent=t+' gespeichert'+(S.items.some(x=>x.t===t)?'.':'. Für diesen Ticker sind noch keine Kursdaten geladen.');
+  ['#ht','#he','#hq','#hs','#hd'].forEach(s=>$(s).value='');
+};
+$('#out').addEventListener('change',e=>{
+  const f=e.target.dataset.f,t=e.target.closest('.card')?.dataset.t;
+  if(!f||!t)return;
+  const it=S.items.find(x=>x.t===t),v=parseFloat(e.target.value);
+  if(it){it[f]=isFinite(v)?v:null;save();render()}
+});
+$('#out').addEventListener('click',e=>{
+  if(e.target.closest('[data-all]')){showAll=true;render();return}
+  if(!e.target.closest('[data-del]'))return;
+  const t=e.target.closest('.card').dataset.t;
+  S.items=S.items.filter(x=>x.t!==t);save();render();
+});
+
+$('#bkx').onclick=()=>{
+  const txt=JSON.stringify(backupObj(),null,1);$('#bkt').value=txt;
+  const fn='minervini-depot-'+new Date().toISOString().slice(0,10)+'.json',m=$('#bkm');
+  m.textContent='Sicherung erzeugt. Der Text steht im Feld darunter und lässt sich kopieren.';
+  (async()=>{
+    try{
+      const dl=window.claude&&claude.use?await claude.use('downloads'):null;
+      if(dl){await dl.save({filename:fn,data:txt});m.textContent='Sicherung als Datei gespeichert ('+fn+'). Der Text steht zusätzlich im Feld darunter.'}
+      else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
+    }catch(e){if(e&&e.code==='declined')m.textContent='Speichern abgebrochen. Der Text steht im Feld darunter und lässt sich kopieren.'}
+  })();
+};
+$('#bki').onclick=()=>$('#bkf').click();
+$('#bkf').onchange=async e=>{const f=e.target.files[0];if(f)$('#bkm').textContent=applyBackup(await f.text());e.target.value=''};
+$('#bkc').onclick=()=>{$('#bkt').value=JSON.stringify(backupObj(),null,1);$('#bkm').textContent='Text erzeugt. Kopiere ihn und bewahre ihn sicher auf.'};
+$('#bkp').onclick=()=>{$('#bkm').textContent=applyBackup($('#bkt').value)};
+render();
+idbTx('readonly',st=>st.get('data')).then(d=>{
+  idbOk=true;
+  if(!S.items.length&&d&&d.items&&d.items.length){S.items=d.items;S.daily=d.daily||{};S.meta=d.meta||null;render()}
+  else if(S.items.length)save();
+}).catch(()=>{}).then(()=>autoLoad(false));
+</script></body></html>
