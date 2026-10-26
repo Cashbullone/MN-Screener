@@ -12,7 +12,9 @@ Einstellungen über Umgebungsvariablen (alle optional):
   OUT_DIR        Zielordner (Standard: public/data)
   MIN_PRICE      Mindestkurs in USD (Standard: 5)
   MIN_AVG_VOL    Mindest-Durchschnittsvolumen, 50 Tage, in Aktien (Standard: 100000)
-  INDEXES        Komma-Liste aus SP500,NDX,R2000 (Standard: alle drei)
+  INDEXES        Komma-Liste aus SP500,NDX,R2000 (Standard: SP500,NDX)
+                 Jede Aktie wird nur einmal geführt: Wer im S&P 500 steht, gilt als S&P 500,
+                 "NDX" enthält dann nur die Nasdaq-100-Werte, die nicht im S&P 500 sind.
   R2000_URL      eigene Adresse für die Russell-2000-Liste
 """
 import datetime as dt
@@ -31,7 +33,7 @@ UA = {"User-Agent": "Mozilla/5.0 (compatible; minervini-screener/1.0)"}
 OUT_DIR = os.environ.get("OUT_DIR", "public/data")
 MIN_PRICE = float(os.environ.get("MIN_PRICE", "5"))
 MIN_AVG_VOL = float(os.environ.get("MIN_AVG_VOL", "100000"))
-INDEXES = [x.strip() for x in os.environ.get("INDEXES", "SP500,NDX,R2000").split(",") if x.strip()]
+INDEXES = [x.strip() for x in os.environ.get("INDEXES", "SP500,NDX").split(",") if x.strip()]
 R2000_URL = os.environ.get(
     "R2000_URL",
     "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf/"
@@ -45,6 +47,11 @@ TICKER_RE = re.compile(r"^[A-Z]{1,5}(-[A-Z])?$")
 
 def log(*a):
     print(*a, flush=True)
+
+
+def notice(msg, level="notice"):
+    """Erscheint als Hinweis oben auf der Lauf-Seite in GitHub (Annotations)."""
+    print("::%s title=Screener::%s" % (level, msg.replace("\n", " ")), flush=True)
 
 
 # ---------------------------------------------------------------- Indexlisten
@@ -116,15 +123,21 @@ def build_universe():
     for key in INDEXES:
         try:
             rows = [(t, n) for t, n in SOURCES[key]() if t]
+            new = 0
             for t, n in rows:
-                ix_map.setdefault(t, set()).add(key)
-                if n and t not in names:      # Reihenfolge SP500, NDX, R2000: der erste Name gilt
+                if t in ix_map:               # schon in einem vorrangigen Index: keine Doppelung
+                    continue
+                ix_map[t] = {key}
+                new += 1
+                if n:
                     names[t] = n
-            status[key] = {"ok": True, "n": len(set(t for t, _ in rows))}
-            log("  %s: %d Ticker" % (key, status[key]["n"]))
+            status[key] = {"ok": True, "n": len(set(t for t, _ in rows)), "new": new}
+            log("  %s: %d Ticker in der Liste, %d davon neu" % (key, status[key]["n"], new))
+            notice("%s: %d Ticker in der Liste, %d davon neu" % (key, status[key]["n"], new))
         except Exception as e:
             status[key] = {"ok": False, "error": str(e)[:200]}
             log("  %s: FEHLER %s" % (key, e))
+            notice("%s: Liste nicht lesbar: %s" % (key, str(e)[:150]), "warning")
     return ix_map, status, names
 
 
@@ -261,12 +274,14 @@ def main():
     tickers = sorted(ix_map)
     if not tickers:
         log("Keine Ticker gefunden, Abbruch.")
+        notice("Keine Ticker gefunden, Abbruch.", "error")
         return 1
     log("%d verschiedene Ticker, lade Kurse" % len(tickers))
     raw, failed = download(tickers)
     payload = assemble(raw, ix_map, names)
     if not payload or len(payload["stocks"]) < MIN_STOCKS:
         log("Nur %d Aktien aufbereitet (Minimum %d), Abbruch." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS))
+        notice("Nur %d Aktien aufbereitet, Minimum %d. Abgerufen: %d von %d Ticker." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS, len(raw), len(tickers)), "error")
         return 1
     payload["failed"] = failed[:300]
     payload["fx"] = fetch_fx()
@@ -279,6 +294,7 @@ def main():
     with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=1)
     log("Fertig: %d Aktien, Stand %s, %s" % (len(payload["stocks"]), payload["asof"], per_ix))
+    notice("Fertig: %d Aktien, Stand %s, je Index %s, Kurs nicht abrufbar: %d, Wechselkurs %s" % (len(payload["stocks"]), payload["asof"], per_ix, len(failed), payload["fx"]))
     return 0
 
 

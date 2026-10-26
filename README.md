@@ -1,6 +1,6 @@
 # Minervini-Screener mit automatischen Kursdaten
 
-GitHub holt jeden Börsentag nach US-Börsenschluss die Kurse von **S&P 500, Nasdaq-100 und Russell 2000**
+GitHub holt jeden Börsentag nach US-Börsenschluss die Kurse von **S&P 500 und Nasdaq-100** (jede Aktie nur einmal, der Russell 2000 ist optional)
 und veröffentlicht sie zusammen mit der App als Webseite. Du öffnest nur den Link, die App lädt die
 aktuellen Daten selbst. Eine Excel-Tabelle ist nicht mehr nötig (sie funktioniert aber weiter).
 
@@ -40,9 +40,9 @@ In `update.yml` unter „Kursdaten holen“ kannst du die auskommentierten Zeile
 
 - `MIN_PRICE` Mindestkurs in USD (Standard 5)
 - `MIN_AVG_VOL` Mindest-Durchschnittsvolumen der letzten 50 Tage in Aktien (Standard 100000)
-- `INDEXES` zum Beispiel `SP500,NDX`, wenn du den Russell 2000 nicht brauchst (der Abruf wird dann viel schneller)
+- `INDEXES` Standard ist `SP500,NDX`. Mit `SP500,NDX,R2000` kommt der Russell 2000 dazu (der Abruf dauert dann deutlich länger)
 
-Welche Indizes gescreent werden, wählst du außerdem direkt in der App über die Häkchen.
+Welche Indizes gescreent werden, wählst du außerdem direkt in der App über die Häkchen. Aktien, die in beiden Indizes stehen, zählen zum S&P 500 und erscheinen nicht doppelt.
 
 ## Wenn etwas nicht klappt
 

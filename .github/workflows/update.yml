@@ -39,7 +39,7 @@ jobs:
           OUT_DIR: public/data
           # MIN_PRICE: "5"          # Mindestkurs in USD
           # MIN_AVG_VOL: "100000"   # Mindest-Durchschnittsvolumen (50 Tage)
-          # INDEXES: "SP500,NDX,R2000"
+          # INDEXES: "SP500,NDX"      # R2000 optional anhängen
 
       - name: Seite zusammenstellen
         run: cp site/index.html public/index.html

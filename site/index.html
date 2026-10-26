@@ -156,7 +156,7 @@ try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(
 S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12},S.cfg);
 S.hold=S.hold||{};
 S.ixf=Object.assign({SP500:true,NDX:true,R2000:true},S.ixf);
-const IXN={SP500:'S&P 500',NDX:'Nasdaq-100',R2000:'Russell 2000'};
+const IXN={SP500:'S&P 500',NDX:'Nasdaq-100 (ohne S&P-Werte)',R2000:'Russell 2000'};
 const inIx=it=>!it.ix||!it.ix.length||!!S.hold[it.t]||it.ix.some(k=>S.ixf[k]!==false);
 const vis=()=>S.items.filter(inIx);
 let idbOk=false,idbP=null;
