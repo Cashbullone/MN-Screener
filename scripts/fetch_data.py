@@ -78,11 +78,62 @@ def universe_sp500():
     raise RuntimeError("Keine S&P-500-Tabelle gefunden")
 
 
-def universe_ndx():
+def _col(t, names, contains=()):
+    cols = {c: " ".join(map(str, c)) if isinstance(c, tuple) else str(c) for c in t.columns}
+    for c, n in cols.items():
+        if n.strip().lower() in names:
+            return c
+    for c, n in cols.items():
+        if any(x in n.lower() for x in contains):
+            return c
+    return None
+
+
+def ndx_wikipedia():
+    seen = []
     for t in wiki_tables("https://en.wikipedia.org/wiki/Nasdaq-100"):
-        if "Ticker" in t.columns and 80 <= len(t) <= 130:
-            return pairs(t, "Ticker", "Company")
-    raise RuntimeError("Keine Nasdaq-100-Tabelle gefunden")
+        tc = _col(t, ("ticker", "symbol", "ticker symbol"))
+        seen.append("%dx%s:%s" % (len(t), len(t.columns), "/".join(str(c)[:12] for c in t.columns)[:60]))
+        if tc is not None and 80 <= len(t) <= 130:
+            return pairs(t, tc, _col(t, ("company", "security", "name"), ("company", "security", "name")) or tc)
+    raise RuntimeError("Keine Tabelle mit Ticker-Spalte. Gefunden: " + "; ".join(seen[:8]))
+
+
+def ndx_nasdaq_api():
+    r = requests.get("https://api.nasdaq.com/api/quote/list-type/nasdaq100",
+                     headers=dict(UA, Accept="application/json, text/plain, */*", Origin="https://www.nasdaq.com",
+                                  Referer="https://www.nasdaq.com/"), timeout=60)
+    r.raise_for_status()
+    rows = r.json()["data"]["data"]["rows"]
+    out = []
+    for x in rows:
+        n = re.sub(r"\s+(Class [A-Z]\s+)?(Common Stock|Ordinary Shares|American Depositary Shares|Capital Stock).*$", "",
+                   str(x.get("companyName", "")).strip())
+        out.append((norm_ticker(x["symbol"]), n))
+    if len(out) < 80:
+        raise RuntimeError("Nasdaq-API lieferte nur %d Zeilen" % len(out))
+    return out
+
+
+def ndx_file():
+    path = os.path.join(os.path.dirname(__file__), "..", "universe", "nasdaq100.txt")
+    if not os.path.exists(path):
+        raise RuntimeError("universe/nasdaq100.txt fehlt")
+    with open(path, encoding="utf-8") as f:
+        return [(norm_ticker(x), "") for x in f.read().split()]
+
+
+def universe_ndx():
+    errs = []
+    for fn in (ndx_wikipedia, ndx_nasdaq_api, ndx_file):
+        try:
+            out = fn()
+            log("  Nasdaq-100 aus %s" % fn.__name__)
+            return out
+        except Exception as e:
+            errs.append("%s: %s" % (fn.__name__, str(e)[:160]))
+            notice("Nasdaq-100 Quelle %s: %s" % (fn.__name__, str(e)[:230]), "warning")
+    raise RuntimeError(" | ".join(errs))
 
 
 def parse_ishares_csv(text):
@@ -211,7 +262,7 @@ def num(x):
     return f if math.isfinite(f) else None
 
 
-def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_VOL, keep=KEEP):
+def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_VOL, keep=KEEP, drop_after=None):
     """Baut das Ausgabeformat. raw: {Ticker: DataFrame mit Close, High, Low, Volume}."""
     frames = {}
     for t, df in raw.items():
@@ -221,6 +272,8 @@ def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_V
         d.index = [pd.Timestamp(x).tz_localize(None) if pd.Timestamp(x).tzinfo else pd.Timestamp(x) for x in d.index]
         d = d[~d.index.duplicated(keep="last")].sort_index()
         d = d.dropna(subset=["Close"])
+        if drop_after is not None:                  # unfertiger Börsentag (Markt noch offen) gehört nicht in die Daten
+            d = d[d.index <= drop_after]
         if len(d) >= 200:
             frames[t] = d
     if not frames:
@@ -267,6 +320,14 @@ def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_V
     }
 
 
+def last_complete_day():
+    """Letzter abgeschlossener US-Börsentag: Ist es in New York noch vor 16:30 Uhr, zählt der heutige Tag nicht."""
+    from zoneinfo import ZoneInfo
+    now = dt.datetime.now(ZoneInfo("America/New_York"))
+    day = now.date() if (now.hour, now.minute) >= (16, 30) else now.date() - dt.timedelta(days=1)
+    return pd.Timestamp(day)
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     log("Indexlisten holen")
@@ -278,7 +339,7 @@ def main():
         return 1
     log("%d verschiedene Ticker, lade Kurse" % len(tickers))
     raw, failed = download(tickers)
-    payload = assemble(raw, ix_map, names)
+    payload = assemble(raw, ix_map, names, drop_after=last_complete_day())
     if not payload or len(payload["stocks"]) < MIN_STOCKS:
         log("Nur %d Aktien aufbereitet (Minimum %d), Abbruch." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS))
         notice("Nur %d Aktien aufbereitet, Minimum %d. Abgerufen: %d von %d Ticker." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS, len(raw), len(tickers)), "error")
