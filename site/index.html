@@ -56,7 +56,7 @@ ul.cr li{display:flex;gap:8px;padding:2px 0}
 .sq{margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)}
 .sq h3{margin:0 0 6px;font-size:15px}
 .sq ol{margin:8px 0 0;padding-left:20px}.sq li{margin:4px 0;font-size:14px}
-@media(max-width:899px){.dl1>span:empty{display:none}}
+@media(max-width:899px){.dl1>span:empty{display:none}.plg::before{content:' · '}}
 @media(min-width:900px){
 .dwrap #dlist{flex:1 1 760px;display:grid;grid-template-columns:auto auto auto minmax(0,1fr) auto auto auto auto auto auto;column-gap:14px;align-items:center}
 .dr,.dh{display:grid;grid-template-columns:subgrid;grid-column:1/-1;align-items:center}
@@ -68,6 +68,11 @@ ul.cr li{display:flex;gap:8px;padding:2px 0}
 .dr .cn{display:block;max-width:none;min-width:0}
 .dr .q,.dr .pr,.dr .lv,.dr .g,.dh .q,.dh .pr,.dh .lv,.dh .g{text-align:right;white-space:nowrap}
 .dr .span3{grid-column:span 3}
+.dr .pl{display:contents}
+.dr .pl>span{margin-top:2px}
+.dr .pl1{grid-column:1/8}
+.dr .plg{grid-column:8/10;text-align:right;white-space:nowrap}
+.dr .plg::before{content:none}
 }
 .bar{flex:1;height:8px;background:var(--bd);border-radius:4px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--ok)}
@@ -333,7 +338,7 @@ const posLine=x=>{
   const h=x.h,p=x.r.p,q=h.qty-(h.sold||0),fx=fxr(),val=q*p,gU=val-q*h.en,gE=h.ec==='EUR'&&h.ev>0?q*(p/fx-h.ev):gU/fx;
   const cl=v=>v>=0?'var(--ok)':'var(--bad)',sg=v=>(v>=0?'+':'−')+Math.abs(v).toLocaleString('de-DE',{maximumFractionDigits:0});
   const ent=h.ec==='EUR'&&h.ev>0?f2(h.ev)+' € / '+f2(h.en)+' $ (Kurs beim Kauf '+(h.ex||fx).toLocaleString('de-DE',{minimumFractionDigits:4,maximumFractionDigits:4})+')':f2(h.en)+' $ / '+eur2(h.en);
-  return `<div class="hint">Einstieg ${ent} · Wert ${usd(val)} · Gewinn/Verlust <b style="color:${cl(gU)}">${sg(gU)} $ / ${sg(gE)} €</b></div>`;
+  return `<div class="hint pl"><span class="pl1">Einstieg ${ent} · Wert ${usd(val)}</span><span class="plg">Gewinn/Verlust <b style="color:${cl(gU)}">${sg(gU)} $ / ${sg(gE)} €</b></span></div>`;
 };
 const SORTS={
   std:{n:'Standard (Kaufkandidaten zuerst, dann neueste Erfüllung, dann RS)'},
