@@ -94,6 +94,8 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <label>Max. Position (% vom Depot)<input id="max" type="number" inputmode="decimal" min="0"></label>
 <label>Max. Positionen (Anzahl)<input id="np" type="number" inputmode="numeric" min="1"></label>
 <label>Wechselkurs (USD je 1 EUR)<input id="fx" type="number" inputmode="decimal" min="0" step="0.0001"></label>
+<label>Tausch ab Score-Vorsprung (Punkte)<input id="sw" type="number" inputmode="numeric" min="0"></label>
+<label>Gewinner behalten ab (% Gewinn)<input id="sk" type="number" inputmode="decimal" min="0"></label>
 <label>Stop-Methode<select id="sm"><option value="fix">Fest (% unter Einstieg)</option><option value="trail">Trailing (% unter dem Hoch seit Einstieg)</option><option value="ma50">Unter der 50-Tage-Linie</option></select></label>
 </div>
 <p class="mut small" style="margin:0">Alle Kurse und Beträge werden in USD und in EUR gezeigt. Der Wechselkurs ist ein fester Wert, den du selbst nachführst (Stand 26.10.2026: etwa 1,12). Mit der GitHub-Automatik wird er täglich gesetzt.</p></section>
@@ -113,6 +115,9 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <label>Stufen (Anstieg % : Verkauf %), immer vom Einstiegskurs gerechnet<input id="sell" type="text" autocomplete="off" placeholder="25:10, 35:20, 45:30, 60:40, 100:100"></label>
 <label style="margin-top:12px">Der Verkaufsanteil bezieht sich auf<select id="base"><option value="rest">die Restposition</option><option value="orig">die ursprüngliche Position</option></select></label>
 <p class="mut small" style="margin:10px 0 0">Trage deine Positionen oben im Bereich Depot ein, dann zeigt die App, wie viele Aktien du verkaufen solltest.</p></section>
+<section id="srch"><h2>Aktie suchen</h2>
+<label>Tickersymbol oder Firmenname<input id="q" type="search" autocomplete="off" autocapitalize="characters" placeholder="z. B. MSI oder Motorola"></label>
+<div id="qres" style="margin-top:8px"></div></section>
 <section><h2>Kursdaten laden</h2>
 <div id="ixbox" hidden></div>
 <div class="row" id="autorow" hidden style="margin:0 0 12px"><button id="autob" class="pri">Daten jetzt neu abrufen</button></div>
@@ -147,13 +152,14 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <p>Marktampel: Die App zählt unter allen geladenen Aktien, wie viele über ihrer 200- und 50-Tage-Linie schließen. Grün: mindestens der eingestellte Anteil über der 200-Tage-Linie (Standard 60 %) und mindestens 50 % über der 50-Tage-Linie. Rot: weniger als der eingestellte Anteil (Standard 45 %) über der 200-Tage-Linie oder weniger als 35 % über der 50-Tage-Linie. Sonst Gelb. Das ist die Breite deiner Liste und kein Index, die Schwellen sind meine Richtwerte. Die Ampel sperrt keine Kandidaten, sie warnt nur.</p>
 <p>Ausbruchssignal: Kriterien 1 bis 7 erfüllt, der Kurs liegt höchstens den eingestellten Abstand (Standard 5 %) unter dem 52-Wochen-Hoch und das Tagesvolumen ist mindestens so hoch wie eingestellt (Standard 1,4-mal Ø). Dafür braucht die App das Blatt „Tagesaktuell“.</p>
 <p>Stop-Methoden: „Fest“ liegt den eingestellten Prozentsatz unter dem Einstiegskurs. „Trailing“ liegt denselben Prozentsatz unter dem höchsten Schlusskurs seit dem Einstiegsdatum, nie tiefer als der feste Stop. „50-Tage-Linie“ nutzt die 50-Tage-Linie als Stop, nie tiefer als der feste Stop. Die Positionsgröße beim Kauf rechnet immer mit dem festen Stop.</p></details>
+<p>Stärke-Score (0 bis 100): 60 % RS-Rating plus 40 % Nähe zum 52-Wochen-Hoch (am Hoch 100 Punkte, 25 % darunter 0 Punkte). Tausch-Empfehlung: Ein neuer Kaufkandidat (7 von 7 Kriterien, neu erfüllt, RS ab Mindestwert) ersetzt die schwächste Depotposition, wenn sein Score mindestens den eingestellten Vorsprung höher liegt, sein RS-Rating mindestens 10 Punkte höher ist und die Depotposition nicht schon ein Verkaufssignal hat. Positionen mit mindestens dem eingestellten Gewinn bleiben im Depot, solange ihr Template hält (Gewinner laufen lassen).</p>
 <p class="mut small">Wenn die Seite über GitHub Pages läuft, holt sie die täglich aktualisierten Kurse selbst. Sonst arbeitet sie mit deinen CSV- oder Excel-Dateien. Keine Anlageberatung.</p>
 </main>
 <script>
 const $=s=>document.querySelector(s),K='mvn1';
 let S={cfg:{eq:50000,risk:1.25,stop:7.5,max:25},items:[]};
 try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
-S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12},S.cfg);
+S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12,sw:15,sk:20},S.cfg);
 S.hold=S.hold||{};
 S.ixf=Object.assign({SP500:true,NDX:true,R2000:true},S.ixf);
 const IXN={SP500:'S&P 500',NDX:'Nasdaq-100 (ohne S&P-Werte)',R2000:'Russell 2000'};
@@ -241,6 +247,44 @@ function size(it,p){
 }
 
 let showAll=false;
+let RK={};
+const scoreOf=r=>r.rs==null||r.dist==null?null:Math.round(.6*r.rs+.4*Math.max(0,100-4*r.dist));
+function buildRank(res){
+  const a=res.map(x=>[x.it.t,scoreOf(x.r)]).filter(x=>x[1]!=null).sort((u,v)=>v[1]-u[1]);
+  RK={};a.forEach((x,i)=>RK[x[0]]={s:x[1],r:i+1,n:a.length});
+}
+function swapPlan(res){
+  const M=S.cfg.sw??15,K=S.cfg.sk??20,out={};
+  const hs=depotRows().filter(x=>x.lv<2&&x.r&&x.pl).map(x=>({x,sc:scoreOf(x.r),g:x.pl.g})).filter(h=>h.sc!=null&&h.g<K).sort((a,b)=>a.sc-b.sc);
+  const cs=res.filter(x=>x.r.st==='ok'&&!S.hold[x.it.t]).map(x=>({it:x.it,r:x.r,sc:scoreOf(x.r)})).filter(c=>c.sc!=null).sort((a,b)=>b.sc-a.sc);
+  const used=new Set();
+  for(const c of cs){
+    const h=hs.find(h=>!used.has(h.x.h.t)&&c.sc-h.sc>=M&&c.r.rs-(h.x.r.rs??0)>=10);
+    if(h){used.add(h.x.h.t);out[h.x.h.t]={c,sc:h.sc,g:h.g,rs:h.x.r.rs}}
+  }
+  return out;
+}
+const swapTxt=(t,w)=>`⇄ Tausch prüfen: ${tkn(w.c.it.t)} (Score ${w.c.sc}, RS ${w.c.r.rs}, neu erfüllt) ist deutlich stärker als ${esc(t)} (Score ${w.sc}, RS ${w.rs??'–'}, ${w.g>=0?'+':''}${f2(w.g)} % seit Einstieg).`;
+const nameOf=it=>it.nm||NAMES[normT(it.t)]||'';
+function findStocks(q){
+  q=q.trim();if(!q)return [];
+  const u=normT(q),l=q.toLowerCase(),a=[];
+  S.items.forEach(it=>{
+    const t=normT(it.t),n=nameOf(it).toLowerCase();let k=-1;
+    if(t===u)k=0;else if(t.startsWith(u))k=1;else if(n.startsWith(l))k=2;else if(n.includes(' '+l))k=3;else if(n.includes(l))k=4;
+    if(k>=0)a.push([k,t,it]);
+  });
+  return a.sort((x,y)=>x[0]-y[0]||(x[1]<y[1]?-1:1)).map(x=>x[2]);
+}
+function renderSearch(){
+  const el=$('#qres'),q=$('#q').value;
+  if(!q.trim()){el.innerHTML='<p class="mut small" style="margin:0">Gib ein Tickersymbol oder einen Teil des Firmennamens ein, dann zeigt die App alle Daten der Aktie.</p>';return}
+  const m=findStocks(q);
+  if(!m.length){el.innerHTML='<p class="mut small" style="margin:0">Keine geladene Aktie gefunden.</p>';return}
+  const it=m[0],r=calc(it),more=m.slice(1,13);
+  el.innerHTML=(inIx(it)?'':'<p class="small" style="color:var(--warn);margin:0 0 8px">Diese Aktie gehört zu einem Index, der oben abgewählt ist. Das RS-Rating wird für sie nicht berechnet.</p>')
+    +card(it,r)+(more.length?'<p class="small mut" style="margin:8px 0 0">Weitere Treffer: '+more.map(x=>`<a href="#" data-pick="${esc(x.t)}">${esc(x.t)}</a>`).join(', ')+(m.length>13?' …':'')+'</p>':'');
+}
 function compact(it){
   if(it.h){const w=Math.min(252,it.c.length);it.hi=Math.max(...it.h.slice(-w));it.lo=Math.min(...it.l.slice(-w));delete it.h;delete it.l}
   return it;
@@ -352,13 +396,13 @@ function drawPie(rows,tv){
 }
 function renderDepot(){
   const rows=depotRows(),eq=S.cfg.eq||1,col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'];
-  rows.forEach((x,i)=>x.no=i+1);
+  rows.forEach((x,i)=>{x.no=i+1;x.swap=(S.swaps||{})[x.h.t]});
   const act=rows.filter(x=>x.lv<3),cnt=[0,1,2].map(k=>act.filter(x=>x.lv===k).length),tv=act.reduce((s,x)=>s+x.val,0);
   $('#dsum').innerHTML=rows.length?`${[2,1,0].map(k=>`<span class="dot" style="background:${col[k]}"></span> ${cnt[k]} ${nm[k]}`).join(' &nbsp; ')} · ${act.length} Position${act.length===1?'':'en'}, Wert ${usd(tv)} (${f2(tv/eq*100)} % vom Depot)`:'Noch keine Positionen im Depot.';
   drawPie(rows,tv);
   $('#dlist').innerHTML=rows.map(x=>x.lv===3?
     `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:var(--mut)">${x.no}</span><span class="dot" style="background:var(--bd)"></span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span class="mut small">${x.txt}</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div></div>`:
-    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span>${px(x.r.p)}</span><span style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div><div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div></div>`).join('');
+    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span>${px(x.r.p)}</span><span style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div><div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div>${x.swap?`<div class="hint" style="color:var(--warn)">${swapTxt(x.h.t,x.swap)}</div>`:''}</div>`).join('');
 }
 function normT(t){return String(t).trim().toUpperCase().replace(/\*/g,'').replace(/[\s.]+/g,'-')}
 function syncDaily(){
@@ -387,7 +431,7 @@ function card(it,r){
   <div class="top"><span><span class="tk">${esc(it.t)}</span>${nmH(it.t)}</span><span class="badge ${badge[0]}">${badge[1]}</span></div>
   ${ttLine(it,r)}${boLine(it,r)}${volLine(it,r)}${peLine(it)}<div class="strip" aria-hidden="true">${r.t.map(x=>`<i class="${x[1]===true?'t':x[1]===false?'f':''}"></i>`).join('')}</div>
   <ul class="cr">${r.t.map(x=>`<li>${ic(x[1])}<span>${x[0]}</span></li>`).join('')}</ul>
-  <div class="kv"><span>Kurs<b>${px(r.p)}</b></span><span>50 / 150 / 200<b>${[r.s50,r.s150,r.s200].map(v=>v?f2(v):'–').join(' / ')}</b></span><span>52-Wochen Tief / Hoch<b>${f2(r.lo)} / ${f2(r.hi)}</b><span class="mut">${eur2(r.lo)} / ${eur2(r.hi)}</span></span></div>
+  <div class="kv"><span>Kurs<b>${px(r.p)}</b></span><span>50 / 150 / 200<b>${[r.s50,r.s150,r.s200].map(v=>v?f2(v):'–').join(' / ')}</b></span><span>52-Wochen Tief / Hoch<b>${f2(r.lo)} / ${f2(r.hi)}</b><span class="mut">${eur2(r.lo)} / ${eur2(r.hi)}</span></span><span>Abstand zum 52-W-Hoch<b>${r.dist!=null?f2(r.dist)+' %':'–'}</b></span>${RK[it.t]?`<span>Stärke-Score<b>${RK[it.t].s}</b><span class="mut">Rang ${RK[it.t].r} von ${RK[it.t].n}</span></span>`:''}</div>
   ${it.qty>0&&it.en>0?'':sz}${planHtml(it,r.p)}
   <div class="ed"><label>RS-Rating<input data-f="rs" type="number" inputmode="numeric" min="1" max="99" value="${it.rs??''}" placeholder="${it.ra!=null?'auto '+it.ra:''}"></label>
   <label>Einstiegskurs<input data-f="en" type="number" inputmode="decimal" min="0" value="${it.en??''}" placeholder="${f2(r.p)}"${S.hold[it.t]?' disabled':''}></label>
@@ -417,7 +461,7 @@ function boLine(it,r){
   return `<div class="small" style="margin-top:6px;color:var(--ok)"><b>Ausbruchssignal:</b> Kurs ${f2(r.dist)} % unter dem 52-Wochen-Hoch, Tagesvolumen ${f2(r.rel)}× Ø</div>`;
 }
 function syncInputs(){
-  ['eq','risk','stop','max','np','fx','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{$('#'+k).value=S.cfg[k]});
+  ['eq','risk','stop','max','np','fx','sw','sk','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{$('#'+k).value=S.cfg[k]});
   $('#sell').value=S.cfg.sellTxt;$('#base').value=S.cfg.base;$('#sm').value=S.cfg.sm;
 }
 function backupObj(){return {v:1,app:'minervini-screener',saved:new Date().toISOString().slice(0,10),cfg:S.cfg,hold:S.hold}}
@@ -489,8 +533,9 @@ function renderStatus(){
   el.innerHTML=h;
 }
 function render(){
-  renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();syncHold();renderDepot();
+  renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();syncHold();
   const res=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}}).sort((a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0));
+  buildRank(res);S.swaps=swapPlan(res);renderDepot();renderSearch();
   renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
   const all=res.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),cand=[];let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>S.cfg.eq)break;cand.push(z);tp0+=z.pos}
   const tp=cand.reduce((s,z)=>s+z.pos,0),tr=cand.reduce((s,z)=>s+z.rk,0),eq=S.cfg.eq;
@@ -498,7 +543,7 @@ function render(){
   const note=N>=2?`<p class="mut small">RS-Rating automatisch berechnet: Rang 1 bis 99 unter ${N} geladenen Aktien (Kursentwicklung der letzten 12 Monate, jüngstes Quartal doppelt gewichtet).${N<30?' Bei so wenigen Aktien hat der Rang wenig Aussagekraft, lade mehr Aktien für ein belastbares Rating.':''} Von dir eingetragene Werte haben Vorrang.</p>`:'<p class="mut small">Für das automatische RS-Rating braucht die App mindestens 2 Aktien mit je 253 Handelstagen (ca. 14 Monate Kursverlauf).</p>';
   const bos=res.filter(x=>x.r.bo&&!S.hold[x.it.t]),sell=res.filter(x=>x.sg===2),top=res.filter(x=>x.r.st==='ok'&&x.ts&&!S.hold[x.it.t]),mx=Math.max(0,...top.map(x=>x.ts)),fresh=top.filter(x=>x.ts===mx);
   const lim=showAll?res.length:25,more=res.length-lim;
-  $('#out').innerHTML='<h2>Ergebnisse</h2>'+(sell.length?`<p class="sum" style="color:var(--warn)"><b>${sell.length} Verkaufssignal${sell.length>1?'e':''}:</b> ${sell.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(fresh.length?`<p class="sum"><b>Zuletzt hinzugekommen (seit ${new Date(mx).toLocaleDateString('de-DE',{timeZone:'UTC'})}):</b> ${fresh.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(bos.length?`<p class="sum" style="color:var(--ok)"><b>Ausbruchssignale:</b> ${bos.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+mktWarn()+'<p class="sum">'+sum+'</p>'+note+(S.items.some(x=>x.av||(x.dq&&x.dq.ok))?'':'<p class="mut small">Für die Kennzahl Handelsvolumen braucht die Datei eine Volumen-Spalte, z. B. in Excel Datum, Schluss und Volumen je Ticker.</p>')+res.slice(0,lim).map(x=>card(x.it,x.r)).join('')+(more>0?`<div class="row"><button data-all>${more} weitere anzeigen</button></div>`:'');
+  $('#out').innerHTML='<h2>Ergebnisse</h2>'+(sell.length?`<p class="sum" style="color:var(--warn)"><b>${sell.length} Verkaufssignal${sell.length>1?'e':''}:</b> ${sell.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(fresh.length?`<p class="sum"><b>Zuletzt hinzugekommen (seit ${new Date(mx).toLocaleDateString('de-DE',{timeZone:'UTC'})}):</b> ${fresh.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(Object.keys(S.swaps||{}).length?`<p class="sum" style="color:var(--warn)"><b>Tausch-Empfehlung:</b> ${Object.entries(S.swaps).map(([t,w])=>tkn(w.c.it.t)+' (Score '+w.c.sc+') statt '+tkn(t)+' (Score '+w.sc+')').join('; ')}</p>`:'')+(bos.length?`<p class="sum" style="color:var(--ok)"><b>Ausbruchssignale:</b> ${bos.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+mktWarn()+'<p class="sum">'+sum+'</p>'+note+(S.items.some(x=>x.av||(x.dq&&x.dq.ok))?'':'<p class="mut small">Für die Kennzahl Handelsvolumen braucht die Datei eine Volumen-Spalte, z. B. in Excel Datum, Schluss und Volumen je Ticker.</p>')+res.slice(0,lim).map(x=>card(x.it,x.r)).join('')+(more>0?`<div class="row"><button data-all>${more} weitere anzeigen</button></div>`:'');
 }
 
 function add(it){S.items=S.items.filter(x=>x.t!==it.t);S.items.push(compact(it));save();render()}
@@ -620,7 +665,7 @@ $('#demo').onclick=()=>{
   msg('Demo-Daten sind zufällig erzeugt und keine echten Kurse.');
 };
 
-['eq','risk','stop','max','np','fx','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{
+['eq','risk','stop','max','np','fx','sw','sk','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{
   const e=$('#'+k);e.value=S.cfg[k];
   e.oninput=()=>{const v=parseFloat(e.value);S.cfg[k]=isFinite(v)?v:0;save();render()};
 });
@@ -648,18 +693,23 @@ $('#hsave').onclick=()=>{
   m.textContent=t+' gespeichert'+(S.items.some(x=>x.t===t)?'.':'. Für diesen Ticker sind noch keine Kursdaten geladen.');
   ['#ht','#he','#hq','#hs','#hd'].forEach(s=>$(s).value='');
 };
-$('#out').addEventListener('change',e=>{
-  const f=e.target.dataset.f,t=e.target.closest('.card')?.dataset.t;
-  if(!f||!t)return;
-  const it=S.items.find(x=>x.t===t),v=parseFloat(e.target.value);
-  if(it){it[f]=isFinite(v)?v:null;save();render()}
+['#out','#qres'].forEach(sel=>{
+  $(sel).addEventListener('change',e=>{
+    const f=e.target.dataset.f,t=e.target.closest('.card')?.dataset.t;
+    if(!f||!t)return;
+    const it=S.items.find(x=>x.t===t),v=parseFloat(e.target.value);
+    if(it){it[f]=isFinite(v)?v:null;save();render()}
+  });
+  $(sel).addEventListener('click',e=>{
+    if(e.target.closest('[data-all]')){showAll=true;render();return}
+    const pk=e.target.closest('[data-pick]');
+    if(pk){e.preventDefault();$('#q').value=pk.dataset.pick;renderSearch();return}
+    if(!e.target.closest('[data-del]'))return;
+    const t=e.target.closest('.card').dataset.t;
+    S.items=S.items.filter(x=>x.t!==t);save();render();
+  });
 });
-$('#out').addEventListener('click',e=>{
-  if(e.target.closest('[data-all]')){showAll=true;render();return}
-  if(!e.target.closest('[data-del]'))return;
-  const t=e.target.closest('.card').dataset.t;
-  S.items=S.items.filter(x=>x.t!==t);save();render();
-});
+$('#q').oninput=renderSearch;
 
 $('#bkx').onclick=()=>{
   const txt=JSON.stringify(backupObj(),null,1);$('#bkt').value=txt;
