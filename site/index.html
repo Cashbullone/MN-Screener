@@ -161,6 +161,7 @@ let S={cfg:{eq:50000,risk:1.25,stop:7.5,max:25},items:[]};
 try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12,sw:15,sk:20},S.cfg);
 S.hold=S.hold||{};
+S.sort=Object.assign({k:'std',d:1},S.sort);
 S.ixf=Object.assign({SP500:true,NDX:true,R2000:true},S.ixf);
 const IXN={SP500:'S&P 500',NDX:'Nasdaq-100 (ohne S&P-Werte)',R2000:'Russell 2000'};
 const inIx=it=>!it.ix||!it.ix.length||!!S.hold[it.t]||it.ix.some(k=>S.ixf[k]!==false);
@@ -248,10 +249,35 @@ function size(it,p){
 
 let showAll=false;
 let RK={};
+const SORTS={
+  std:{n:'Standard (Kaufkandidaten zuerst, dann neueste Erfüllung, dann RS)'},
+  score:{n:'Stärke-Score',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>RK[x.it.t]?RK[x.it.t].s*1e6-RK[x.it.t].r:null},
+  rank:{n:'Rang',dir:['1 → letzter','letzter → 1'],desc:false,v:x=>RK[x.it.t]?RK[x.it.t].r:null},
+  date:{n:'Kriterien 1 bis 7 erfüllt seit (Datum)',dir:['neu → alt','alt → neu'],desc:true,v:x=>x.ts||null},
+  rs:{n:'RS-Rating',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>x.r.rs},
+  dist:{n:'Abstand zum 52-Wochen-Hoch',dir:['nah → weit','weit → nah'],desc:false,v:x=>x.r.dist},
+  tk:{n:'Tickersymbol',dir:['A → Z','Z → A'],desc:false,v:x=>x.it.t}
+};
+function sortRes(list,std){
+  const m=SORTS[S.sort.k];
+  if(!m||!m.v)return list.slice().sort(std);
+  const dir=S.sort.d===-1?-1:1;
+  return list.slice().sort((a,b)=>{
+    const va=m.v(a),vb=m.v(b),ma=va==null,mb=vb==null;
+    if(ma||mb)return ma&&mb?std(a,b):ma?1:-1;      // fehlende Werte stehen immer am Ende
+    let c=va<vb?-1:va>vb?1:0;
+    if(m.desc)c=-c;
+    return c*dir||std(a,b);
+  });
+}
+function sortBar(){
+  const m=SORTS[S.sort.k]||SORTS.std;
+  return '<div class="row" style="margin:12px 0;align-items:flex-end"><label style="flex:1 1 260px">Sortierung<select data-sort>'+Object.keys(SORTS).map(k=>`<option value="${k}"${k===S.sort.k?' selected':''}>${SORTS[k].n}</option>`).join('')+'</select></label>'+(m.dir?`<button type="button" data-sortdir>${m.dir[S.sort.d===-1?1:0]} ⇅</button>`:'')+'</div>';
+}
 const scoreOf=r=>r.rs==null||r.dist==null?null:Math.round(.6*r.rs+.4*Math.max(0,100-4*r.dist));
 function buildRank(res){
-  const a=res.map(x=>[x.it.t,scoreOf(x.r)]).filter(x=>x[1]!=null).sort((u,v)=>v[1]-u[1]);
-  RK={};a.forEach((x,i)=>RK[x[0]]={s:x[1],r:i+1,n:a.length});
+  const a=res.map(x=>({t:x.it.t,s:scoreOf(x.r),rs:x.r.rs??0,d:x.r.dist??99})).filter(x=>x.s!=null).sort((u,v)=>v.s-u.s||v.rs-u.rs||u.d-v.d||(u.t<v.t?-1:1));
+  RK={};a.forEach((x,i)=>RK[x.t]={s:x.s,r:i+1,n:a.length});
 }
 function swapPlan(res){
   const M=S.cfg.sw??15,K=S.cfg.sk??20,out={};
@@ -534,16 +560,18 @@ function renderStatus(){
 }
 function render(){
   renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();syncHold();
-  const res=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}}).sort((a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0));
-  buildRank(res);S.swaps=swapPlan(res);renderDepot();renderSearch();
+  const res0=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}});
+  buildRank(res0);
+  const stdCmp=(a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0),resStd=res0.slice().sort(stdCmp),res=sortRes(res0,stdCmp);
+  S.swaps=swapPlan(resStd);renderDepot();renderSearch();
   renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
-  const all=res.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),cand=[];let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>S.cfg.eq)break;cand.push(z);tp0+=z.pos}
+  const all=resStd.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),cand=[];let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>S.cfg.eq)break;cand.push(z);tp0+=z.pos}
   const tp=cand.reduce((s,z)=>s+z.pos,0),tr=cand.reduce((s,z)=>s+z.rk,0),eq=S.cfg.eq;
-  const sum=cand.length?`${all.length} Kandidat${all.length>1?'en':''}${cand.length<all.length?`, die obersten ${cand.length} der Liste zusammen (begrenzt durch Depot und Max. Positionen)`:' zusammen'}: ${usd(tp)} (${f2(tp/eq*100)} % vom Depot), Gesamtrisiko ${usd(tr)} (${f2(tr/eq*100)} %).${tp>eq?' Das übersteigt dein Depot, wähle also nur die stärksten Titel.':''}`:'Aktuell kein Kandidat, der alle Kriterien erfüllt.';
+  const sum=cand.length?`${all.length} Kandidat${all.length>1?'en':''}${cand.length<all.length?`, die ersten ${cand.length} in der Standardreihenfolge zusammen (begrenzt durch Depot und Max. Positionen)`:' zusammen'}: ${usd(tp)} (${f2(tp/eq*100)} % vom Depot), Gesamtrisiko ${usd(tr)} (${f2(tr/eq*100)} %).${tp>eq?' Das übersteigt dein Depot, wähle also nur die stärksten Titel.':''}`:'Aktuell kein Kandidat, der alle Kriterien erfüllt.';
   const note=N>=2?`<p class="mut small">RS-Rating automatisch berechnet: Rang 1 bis 99 unter ${N} geladenen Aktien (Kursentwicklung der letzten 12 Monate, jüngstes Quartal doppelt gewichtet).${N<30?' Bei so wenigen Aktien hat der Rang wenig Aussagekraft, lade mehr Aktien für ein belastbares Rating.':''} Von dir eingetragene Werte haben Vorrang.</p>`:'<p class="mut small">Für das automatische RS-Rating braucht die App mindestens 2 Aktien mit je 253 Handelstagen (ca. 14 Monate Kursverlauf).</p>';
   const bos=res.filter(x=>x.r.bo&&!S.hold[x.it.t]),sell=res.filter(x=>x.sg===2),top=res.filter(x=>x.r.st==='ok'&&x.ts&&!S.hold[x.it.t]),mx=Math.max(0,...top.map(x=>x.ts)),fresh=top.filter(x=>x.ts===mx);
   const lim=showAll?res.length:25,more=res.length-lim;
-  $('#out').innerHTML='<h2>Ergebnisse</h2>'+(sell.length?`<p class="sum" style="color:var(--warn)"><b>${sell.length} Verkaufssignal${sell.length>1?'e':''}:</b> ${sell.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(fresh.length?`<p class="sum"><b>Zuletzt hinzugekommen (seit ${new Date(mx).toLocaleDateString('de-DE',{timeZone:'UTC'})}):</b> ${fresh.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(Object.keys(S.swaps||{}).length?`<p class="sum" style="color:var(--warn)"><b>Tausch-Empfehlung:</b> ${Object.entries(S.swaps).map(([t,w])=>tkn(w.c.it.t)+' (Score '+w.c.sc+') statt '+tkn(t)+' (Score '+w.sc+')').join('; ')}</p>`:'')+(bos.length?`<p class="sum" style="color:var(--ok)"><b>Ausbruchssignale:</b> ${bos.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+mktWarn()+'<p class="sum">'+sum+'</p>'+note+(S.items.some(x=>x.av||(x.dq&&x.dq.ok))?'':'<p class="mut small">Für die Kennzahl Handelsvolumen braucht die Datei eine Volumen-Spalte, z. B. in Excel Datum, Schluss und Volumen je Ticker.</p>')+res.slice(0,lim).map(x=>card(x.it,x.r)).join('')+(more>0?`<div class="row"><button data-all>${more} weitere anzeigen</button></div>`:'');
+  $('#out').innerHTML='<h2>Ergebnisse</h2>'+(sell.length?`<p class="sum" style="color:var(--warn)"><b>${sell.length} Verkaufssignal${sell.length>1?'e':''}:</b> ${sell.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(fresh.length?`<p class="sum"><b>Zuletzt hinzugekommen (seit ${new Date(mx).toLocaleDateString('de-DE',{timeZone:'UTC'})}):</b> ${fresh.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(Object.keys(S.swaps||{}).length?`<p class="sum" style="color:var(--warn)"><b>Tausch-Empfehlung:</b> ${Object.entries(S.swaps).map(([t,w])=>tkn(w.c.it.t)+' (Score '+w.c.sc+') statt '+tkn(t)+' (Score '+w.sc+')').join('; ')}</p>`:'')+(bos.length?`<p class="sum" style="color:var(--ok)"><b>Ausbruchssignale:</b> ${bos.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+mktWarn()+'<p class="sum">'+sum+'</p>'+note+(S.items.some(x=>x.av||(x.dq&&x.dq.ok))?'':'<p class="mut small">Für die Kennzahl Handelsvolumen braucht die Datei eine Volumen-Spalte, z. B. in Excel Datum, Schluss und Volumen je Ticker.</p>')+sortBar()+res.slice(0,lim).map(x=>card(x.it,x.r)).join('')+(more>0?`<div class="row"><button data-all>${more} weitere anzeigen</button></div>`:'');
 }
 
 function add(it){S.items=S.items.filter(x=>x.t!==it.t);S.items.push(compact(it));save();render()}
@@ -695,6 +723,7 @@ $('#hsave').onclick=()=>{
 };
 ['#out','#qres'].forEach(sel=>{
   $(sel).addEventListener('change',e=>{
+    if(e.target.dataset&&e.target.hasAttribute('data-sort')){S.sort.k=e.target.value;S.sort.d=1;save();render();return}
     const f=e.target.dataset.f,t=e.target.closest('.card')?.dataset.t;
     if(!f||!t)return;
     const it=S.items.find(x=>x.t===t),v=parseFloat(e.target.value);
@@ -702,6 +731,7 @@ $('#hsave').onclick=()=>{
   });
   $(sel).addEventListener('click',e=>{
     if(e.target.closest('[data-all]')){showAll=true;render();return}
+    if(e.target.closest('[data-sortdir]')){S.sort.d=S.sort.d===-1?1:-1;save();render();return}
     const pk=e.target.closest('[data-pick]');
     if(pk){e.preventDefault();$('#q').value=pk.dataset.pick;renderSearch();return}
     if(!e.target.closest('[data-del]'))return;
