@@ -8,6 +8,7 @@
 :root[data-theme="dark"]{--yl:#f2c94c;--bg:#131a15;--card:#1b241e;--tx:#e8eee9;--mut:#98a69c;--bd:#2c382f;--ok:#4cc38a;--okbg:#1d3a2a;--bad:#ef7b6e;--warn:#e2b552;--warnbg:#3a3014;--ac:#e8eee9;--acx:#131a15;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
 main{max-width:1280px;margin:0 auto;padding:20px 16px 40px}
 h1{font:700 28px/1.15 Georgia,"Times New Roman",serif;margin:8px 0 4px}
@@ -74,11 +75,14 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <section id="mkt"><h2>Markt</h2><div id="mktbody"></div></section>
 <section id="depotsec"><h2>Depot</h2>
 <p id="dsum" class="sum"></p>
+<div id="liveb" class="small mut" style="margin:0 0 10px"></div>
 <div class="dwrap"><div id="dlist"></div><div id="dpie" class="dpie"></div></div>
 <details style="margin-top:10px"><summary>Position hinzufügen oder ändern</summary>
 <div class="grid" style="margin-top:12px">
 <label>Ticker<input id="ht" autocapitalize="characters" autocomplete="off"></label>
 <label>Einstiegskurs<input id="he" type="number" inputmode="decimal" min="0" step="any"></label>
+<label>Währung des Einstiegskurses<select id="hc"><option value="USD">USD</option><option value="EUR">EUR</option></select></label>
+<label id="hxl" hidden>Wechselkurs beim Kauf (USD je 1 EUR)<input id="hx" type="number" inputmode="decimal" min="0" step="0.0001"></label>
 <label>Stückzahl<input id="hq" type="number" inputmode="numeric" min="0"></label>
 <label>Schon verkauft (Stück)<input id="hs" type="number" inputmode="numeric" min="0"></label>
 <label>Einstiegsdatum (für Trailing-Stop)<input id="hd" type="date"></label>
@@ -94,11 +98,12 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <label>Max. Position (% vom Depot)<input id="max" type="number" inputmode="decimal" min="0"></label>
 <label>Max. Positionen (Anzahl)<input id="np" type="number" inputmode="numeric" min="1"></label>
 <label>Wechselkurs (USD je 1 EUR)<input id="fx" type="number" inputmode="decimal" min="0" step="0.0001"></label>
+<label>Finnhub-Schlüssel (Live-Kurse)<input id="fk" type="password" autocomplete="off" spellcheck="false" placeholder="kostenlos auf finnhub.io"></label>
 <label>Tausch ab Score-Vorsprung (Punkte)<input id="sw" type="number" inputmode="numeric" min="0"></label>
 <label>Gewinner behalten ab (% Gewinn)<input id="sk" type="number" inputmode="decimal" min="0"></label>
 <label>Stop-Methode<select id="sm"><option value="fix">Fest (% unter Einstieg)</option><option value="trail">Trailing (% unter dem Hoch seit Einstieg)</option><option value="ma50">Unter der 50-Tage-Linie</option></select></label>
 </div>
-<p class="mut small" style="margin:0">Alle Kurse und Beträge werden in USD und in EUR gezeigt. Der Wechselkurs ist ein fester Wert, den du selbst nachführst (Stand 26.10.2026: etwa 1,12). Mit der GitHub-Automatik wird er täglich gesetzt.</p></section>
+<p class="mut small" style="margin:0">Live-Kurse für dein Depot kommen von Finnhub. Dafür legst du auf finnhub.io ein kostenloses Konto an und trägst den „API Key“ hier ein. Er bleibt nur in diesem Browser und ist nicht in der Depot-Sicherung enthalten. Ohne Schlüssel gelten die Schlusskurse. Alle Kurse und Beträge werden in USD und in EUR gezeigt. Der Wechselkurs ist ein fester Wert, den du selbst nachführst (Stand 26.10.2026: etwa 1,12). Mit der GitHub-Automatik wird er täglich gesetzt.</p></section>
 
 <section><h2>Filter und Kennzahlen</h2>
 <div class="grid">
@@ -153,6 +158,7 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <p>Ausbruchssignal: Kriterien 1 bis 7 erfüllt, der Kurs liegt höchstens den eingestellten Abstand (Standard 5 %) unter dem 52-Wochen-Hoch und das Tagesvolumen ist mindestens so hoch wie eingestellt (Standard 1,4-mal Ø). Dafür braucht die App das Blatt „Tagesaktuell“.</p>
 <p>Stop-Methoden: „Fest“ liegt den eingestellten Prozentsatz unter dem Einstiegskurs. „Trailing“ liegt denselben Prozentsatz unter dem höchsten Schlusskurs seit dem Einstiegsdatum, nie tiefer als der feste Stop. „50-Tage-Linie“ nutzt die 50-Tage-Linie als Stop, nie tiefer als der feste Stop. Die Positionsgröße beim Kauf rechnet immer mit dem festen Stop.</p></details>
 <p>Stärke-Score (0 bis 100): 60 % RS-Rating plus 40 % Nähe zum 52-Wochen-Hoch (am Hoch 100 Punkte, 25 % darunter 0 Punkte). Tausch-Empfehlung: Ein neuer Kaufkandidat (7 von 7 Kriterien, neu erfüllt, RS ab Mindestwert) ersetzt die schwächste Depotposition, wenn sein Score mindestens den eingestellten Vorsprung höher liegt, sein RS-Rating mindestens 10 Punkte höher ist und die Depotposition nicht schon ein Verkaufssignal hat. Positionen mit mindestens dem eingestellten Gewinn bleiben im Depot, solange ihr Template hält (Gewinner laufen lassen).</p>
+<p>Einstieg in EUR: Wählst du beim Einstiegskurs EUR, rechnet die App ihn mit dem Wechselkurs beim Kauf in USD um (Vorschlag: aktueller Kurs). Verkaufsstufen und Stops beziehen sich auf den USD-Kurs der Aktie. Der Gewinn in EUR enthält bei EUR-Einstieg auch die Wechselkursänderung seit dem Kauf.</p>
 <p class="mut small">Wenn die Seite über GitHub Pages läuft, holt sie die täglich aktualisierten Kurse selbst. Sonst arbeitet sie mit deinen CSV- oder Excel-Dateien. Keine Anlageberatung.</p>
 </main>
 <script>
@@ -177,7 +183,8 @@ const save=()=>{
 };
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f2=n=>n.toLocaleString('de-DE',{maximumFractionDigits:2,minimumFractionDigits:2});
-const fxr=()=>S.cfg.fx>0?S.cfg.fx:1.12;
+const LIVE={p:{},fx:null,at:0,err:'',busy:false,bad:[]};
+const fxr=()=>LIVE.fx>0?LIVE.fx:(S.cfg.fx>0?S.cfg.fx:1.12);
 const eur0=n=>(n/fxr()).toLocaleString('de-DE',{maximumFractionDigits:0})+' €';
 const eur2=n=>(n/fxr()).toLocaleString('de-DE',{maximumFractionDigits:2,minimumFractionDigits:2})+' €';
 const usd=n=>'$'+n.toLocaleString('de-DE',{maximumFractionDigits:0})+' / '+eur0(n);
@@ -219,7 +226,7 @@ function parse(t){
 const sma=(a,n,off=0)=>{const e=a.length-off;if(e<n)return null;let s=0;for(let i=e-n;i<e;i++)s+=a[i];return s/n};
 
 function calc(it){
-  const c=it.c,dq=it.dq&&it.dq.ok?it.dq:null,p=dq?dq.p:c[c.length-1],w=Math.min(252,c.length);
+  const c=it.c,dq=it.dq&&it.dq.ok?it.dq:null,lv=LIVE.p[it.t],p=lv&&lv.p>0?lv.p:dq?dq.p:c[c.length-1],w=Math.min(252,c.length);
   const s50=sma(c,50),s150=sma(c,150),s200=sma(c,200),s200p=sma(c,200,22);
   const hi=dq?Math.max(dq.hi,p):(it.hi??Math.max(...it.h.slice(-w))),lo=dq?Math.min(dq.lo,p):(it.lo??Math.min(...it.l.slice(-w))),rs=it.rs??it.ra??null,M=S.cfg.rsm||80,nw=S.cfg.nw??5,age=it.tt&&it.tt.a!=null?it.tt.a:null;
   const t=[
@@ -249,6 +256,65 @@ function size(it,p){
 
 let showAll=false;
 let RK={};
+const fk=()=>(S.fk||'').trim();
+async function fh(path){
+  const r=await fetch('https://finnhub.io/api/v1/'+path+(path.includes('?')?'&':'?')+'token='+encodeURIComponent(fk()));
+  if(r.status===401||r.status===403){const e=new Error('key');e.code='key';throw e}
+  if(r.status===429){const e=new Error('limit');e.code='limit';throw e}
+  if(!r.ok)throw new Error('http '+r.status);
+  return r.json();
+}
+function renderLive(){
+  const el=$('#liveb');if(!el)return;
+  const btn=' <button type="button" data-live style="padding:2px 10px;font-weight:400"'+(LIVE.busy?' disabled':'')+'>Jetzt aktualisieren</button>';
+  const n=Object.values(S.hold).filter(h=>h.qty-(h.sold||0)>0).length;
+  if(!fk()){el.innerHTML='Live-Kurse aus. Trage unten unter „Depot und Risiko“ deinen kostenlosen Finnhub-Schlüssel ein, dann zeigt das Depot Kurse in Echtzeit.';return}
+  if(!n){el.innerHTML='Live-Kurse bereit, sobald Positionen im Depot sind.';return}
+  let h;
+  if(LIVE.busy)h='Hole Live-Kurse …';
+  else if(LIVE.err==='key')h='<span style="color:var(--bad)">Der Finnhub-Schlüssel wird nicht akzeptiert.</span> Prüfe ihn unter „Depot und Risiko“.';
+  else if(LIVE.err==='limit')h='<span style="color:var(--warn)">Abruflimit von Finnhub erreicht.</span> Der nächste Versuch folgt in einer Minute.'+btn;
+  else if(LIVE.err==='net')h='<span style="color:var(--warn)">Live-Kurse nicht abrufbar</span> (keine Verbindung oder vom Browser blockiert). Es gelten die letzten Schlusskurse.'+btn;
+  else if(LIVE.at){
+    const ts=Object.values(LIVE.p).map(x=>x.t).filter(Boolean),last=ts.length?Math.max(...ts):0,age=last?(Date.now()/1000-last)/60:0;
+    h='<span style="color:var(--ok)">●</span> Live-Kurse, abgerufen um '+new Date(LIVE.at).toLocaleTimeString('de-DE')+(age>20?' (letzter Handel '+new Date(last*1000).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+', die Börse ist vermutlich geschlossen)':'')+'.'+(LIVE.bad.length?' Kein Live-Kurs für '+LIVE.bad.map(esc).join(', ')+'.':'')+btn;
+  }else h='Noch kein Live-Kurs abgerufen.'+btn;
+  el.innerHTML=h;
+}
+async function liveFetch(){
+  if(LIVE.busy||!fk())return renderLive();
+  const ts=Object.values(S.hold).filter(h=>h.qty-(h.sold||0)>0).map(h=>h.t);
+  if(!ts.length)return renderLive();
+  LIVE.busy=true;LIVE.err='';renderLive();
+  let ok=0;const bad=[];
+  try{
+    const res=await Promise.all(ts.map(t=>fh('quote?symbol='+encodeURIComponent(t.replace(/-/g,'.'))).then(j=>({t,j})).catch(e=>({t,e}))));
+    for(const x of res){
+      if(x.e){if(x.e.code==='key'||x.e.code==='limit')LIVE.err=x.e.code;else bad.push(x.t);continue}
+      if(x.j&&x.j.c>0){LIVE.p[x.t]={p:x.j.c,dp:x.j.dp,pc:x.j.pc,t:x.j.t};ok++}else bad.push(x.t);
+    }
+    if(!LIVE.err){
+      try{const r=await fh('forex/rates?base=EUR'),u=r&&r.quote&&r.quote.USD;if(u>0.5&&u<2)LIVE.fx=u}catch(e){}
+    }
+    if(ok)LIVE.at=Date.now();
+    LIVE.bad=bad;
+    if(!ok&&!LIVE.err)LIVE.err='net';
+  }finally{LIVE.busy=false}
+  render();
+}
+let liveT=null;
+function liveStart(){
+  clearInterval(liveT);
+  liveT=setInterval(()=>{if(!document.hidden&&fk())liveFetch()},60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fk()&&Date.now()-LIVE.at>30000)liveFetch()});
+  liveFetch();
+}
+const posLine=x=>{
+  const h=x.h,p=x.r.p,q=h.qty-(h.sold||0),fx=fxr(),val=q*p,gU=val-q*h.en,gE=h.ec==='EUR'&&h.ev>0?q*(p/fx-h.ev):gU/fx;
+  const cl=v=>v>=0?'var(--ok)':'var(--bad)',sg=v=>(v>=0?'+':'−')+Math.abs(v).toLocaleString('de-DE',{maximumFractionDigits:0});
+  const ent=h.ec==='EUR'&&h.ev>0?f2(h.ev)+' € / '+f2(h.en)+' $ (Kurs beim Kauf '+(h.ex||fx).toLocaleString('de-DE',{minimumFractionDigits:4,maximumFractionDigits:4})+')':f2(h.en)+' $ / '+eur2(h.en);
+  return `<div class="hint">Einstieg ${ent} · Wert ${usd(val)} · Gewinn/Verlust <b style="color:${cl(gU)}">${sg(gU)} $ / ${sg(gE)} €</b></div>`;
+};
 const SORTS={
   std:{n:'Standard (Kaufkandidaten zuerst, dann neueste Erfüllung, dann RS)'},
   score:{n:'Stärke-Score',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>RK[x.it.t]?RK[x.it.t].s*1e6-RK[x.it.t].r:null},
@@ -421,6 +487,7 @@ function drawPie(rows,tv){
   el.innerHTML=`<svg viewBox="0 0 200 200" role="img" aria-label="Depotgewichtung">${sl}</svg><div class="leg">${lg}<div class="mut small">Anteil an der Summe der Positionen</div></div>`;
 }
 function renderDepot(){
+  renderLive();
   const rows=depotRows(),eq=S.cfg.eq||1,col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'];
   rows.forEach((x,i)=>{x.no=i+1;x.swap=(S.swaps||{})[x.h.t]});
   const act=rows.filter(x=>x.lv<3),cnt=[0,1,2].map(k=>act.filter(x=>x.lv===k).length),tv=act.reduce((s,x)=>s+x.val,0);
@@ -428,7 +495,7 @@ function renderDepot(){
   drawPie(rows,tv);
   $('#dlist').innerHTML=rows.map(x=>x.lv===3?
     `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:var(--mut)">${x.no}</span><span class="dot" style="background:var(--bd)"></span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span class="mut small">${x.txt}</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div></div>`:
-    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span>${px(x.r.p)}</span><span style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div><div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div>${x.swap?`<div class="hint" style="color:var(--warn)">${swapTxt(x.h.t,x.swap)}</div>`:''}</div>`).join('');
+    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}<span class="small" title="Stückzahl im Bestand"><b>${(x.h.qty-(x.h.sold||0)).toLocaleString('de-DE')}</b> Stk.</span>${wki(x.h)}<span>${px(x.r.p)}</span>${LIVE.p[x.h.t]?`<span class="small" style="color:var(--ok)" title="Live-Kurs">● live${LIVE.p[x.h.t].dp!=null?' <span style="color:'+(LIVE.p[x.h.t].dp>=0?'var(--ok)':'var(--bad)')+'">'+(LIVE.p[x.h.t].dp>=0?'+':'')+f2(LIVE.p[x.h.t].dp)+' % heute</span>':''}</span>`:''}<span style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div>${posLine(x)}<div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div>${x.swap?`<div class="hint" style="color:var(--warn)">${swapTxt(x.h.t,x.swap)}</div>`:''}</div>`).join('');
 }
 function normT(t){return String(t).trim().toUpperCase().replace(/\*/g,'').replace(/[\s.]+/g,'-')}
 function syncDaily(){
@@ -495,7 +562,7 @@ function applyBackup(txt){
   let o;try{o=JSON.parse(txt)}catch(e){return 'Das ist keine gültige Sicherung (kein lesbarer Text).'}
   if(!o||o.app!=='minervini-screener'||!o.hold||typeof o.hold!=='object')return 'Das ist keine Sicherung dieses Screeners.';
   const hold={};let n=0;
-  for(const k in o.hold){const h=o.hold[k];if(h&&typeof h.t==='string'&&h.t&&h.en>0&&h.qty>0){const q=Math.floor(h.qty);hold[h.t]={t:h.t,en:+h.en,qty:q,sold:Math.max(0,Math.min(Math.floor(h.sold||0),q)),wkn:String(h.wkn||'').slice(0,12).toUpperCase(),ed:isFinite(h.ed)&&h.ed>0?+h.ed:null};n++}}
+  for(const k in o.hold){const h=o.hold[k];if(h&&typeof h.t==='string'&&h.t&&h.en>0&&h.qty>0){const q=Math.floor(h.qty);hold[h.t]={t:h.t,en:+h.en,qty:q,sold:Math.max(0,Math.min(Math.floor(h.sold||0),q)),wkn:String(h.wkn||'').slice(0,12).toUpperCase(),ed:isFinite(h.ed)&&h.ed>0?+h.ed:null};if(h.ec==='EUR'&&h.ev>0&&h.ex>0){hold[h.t].ec='EUR';hold[h.t].ev=+h.ev;hold[h.t].ex=+h.ex}else hold[h.t].ec='USD';n++}}
   if(o.cfg&&typeof o.cfg==='object')for(const k in S.cfg){if(k in o.cfg&&typeof o.cfg[k]===typeof S.cfg[k])S.cfg[k]=o.cfg[k]}
   S.hold=hold;save();syncInputs();render();
   return n+' Position'+(n===1?'':'en')+' und die Einstellungen importiert. Das bisherige Depot wurde ersetzt.';
@@ -711,15 +778,19 @@ $('#dlist').addEventListener('click',e=>{
   const d=e.target.closest('[data-hdel]');
   if(d){delete S.hold[d.dataset.hdel];save();render();return}
   const r=e.target.closest('[data-e]');
-  if(r){const h=S.hold[r.dataset.e];if(!h)return;$('#ht').value=h.t;$('#he').value=h.en;$('#hq').value=h.qty;$('#hs').value=h.sold||'';$('#hd').value=h.ed?new Date(h.ed*864e5).toISOString().slice(0,10):'';$('#depotsec details').open=true;$('#he').focus()}
+  if(r){const h=S.hold[r.dataset.e];if(!h)return;$('#ht').value=h.t;$('#hc').value=h.ec==='EUR'&&h.ev>0?'EUR':'USD';$('#he').value=h.ec==='EUR'&&h.ev>0?h.ev:h.en;$('#hx').value=h.ec==='EUR'&&h.ex>0?h.ex:'';hcSync();$('#hq').value=h.qty;$('#hs').value=h.sold||'';$('#hd').value=h.ed?new Date(h.ed*864e5).toISOString().slice(0,10):'';$('#depotsec details').open=true;$('#he').focus()}
 });
+const hcSync=()=>{const e=$('#hc').value==='EUR';$('#hxl').hidden=!e;if(e&&!(parseFloat($('#hx').value)>0))$('#hx').value=fxr().toFixed(4)};
+$('#hc').onchange=hcSync;
 $('#hsave').onclick=()=>{
-  const t=$('#ht').value.trim().toUpperCase(),en=parseFloat($('#he').value),qty=Math.floor(parseFloat($('#hq').value)),sold=Math.floor(parseFloat($('#hs').value)||0),m=$('#hmsg');
+  const t=$('#ht').value.trim().toUpperCase(),ev=parseFloat($('#he').value),qty=Math.floor(parseFloat($('#hq').value)),sold=Math.floor(parseFloat($('#hs').value)||0),m=$('#hmsg'),eurIn=$('#hc').value==='EUR',ex=eurIn?parseFloat($('#hx').value):null;
   if(!t){m.textContent='Bitte einen Ticker eintragen.';return}
-  if(!(en>0)||!(qty>0)){m.textContent='Einstiegskurs und Stückzahl müssen größer als 0 sein.';return}
-  S.hold[t]={t,en,qty,sold:Math.min(sold,qty),wkn:(S.hold[t]&&S.hold[t].wkn)||'',ed:$('#hd').value?Math.floor(Date.parse($('#hd').value)/864e5):null};save();render();
+  if(!(ev>0)||!(qty>0)){m.textContent='Einstiegskurs und Stückzahl müssen größer als 0 sein.';return}
+  if(eurIn&&!(ex>0.3&&ex<3)){m.textContent='Bitte den Wechselkurs beim Kauf (USD je 1 EUR, etwa 1,10) eintragen.';return}
+  const en=eurIn?ev*ex:ev;
+  S.hold[t]=Object.assign({t,en,qty,sold:Math.min(sold,qty),wkn:(S.hold[t]&&S.hold[t].wkn)||'',ed:$('#hd').value?Math.floor(Date.parse($('#hd').value)/864e5):null},eurIn?{ec:'EUR',ev,ex}:{ec:'USD'});save();render();liveFetch();
   m.textContent=t+' gespeichert'+(S.items.some(x=>x.t===t)?'.':'. Für diesen Ticker sind noch keine Kursdaten geladen.');
-  ['#ht','#he','#hq','#hs','#hd'].forEach(s=>$(s).value='');
+  ['#ht','#he','#hq','#hs','#hd','#hx'].forEach(s=>$(s).value='');$('#hc').value='USD';hcSync();
 };
 ['#out','#qres'].forEach(sel=>{
   $(sel).addEventListener('change',e=>{
@@ -757,10 +828,13 @@ $('#bki').onclick=()=>$('#bkf').click();
 $('#bkf').onchange=async e=>{const f=e.target.files[0];if(f)$('#bkm').textContent=applyBackup(await f.text());e.target.value=''};
 $('#bkc').onclick=()=>{$('#bkt').value=JSON.stringify(backupObj(),null,1);$('#bkm').textContent='Text erzeugt. Kopiere ihn und bewahre ihn sicher auf.'};
 $('#bkp').onclick=()=>{$('#bkm').textContent=applyBackup($('#bkt').value)};
+$('#fk').value=S.fk||'';
+$('#fk').onchange=e=>{S.fk=e.target.value.trim();save();LIVE.p={};LIVE.fx=null;LIVE.at=0;LIVE.err='';render();liveFetch()};
+$('#liveb').addEventListener('click',e=>{if(e.target.closest('[data-live]'))liveFetch()});
 render();
 idbTx('readonly',st=>st.get('data')).then(d=>{
   idbOk=true;
   if(!S.items.length&&d&&d.items&&d.items.length){S.items=d.items;S.daily=d.daily||{};S.meta=d.meta||null;render()}
   else if(S.items.length)save();
-}).catch(()=>{}).then(()=>autoLoad(false));
+}).catch(()=>{}).then(()=>autoLoad(false)).then(liveStart);
 </script></body></html>
