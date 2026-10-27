@@ -1,4 +1,4 @@
-# Minervini-Screener mit automatischen Kursdaten
+# MN-Screener mit automatischen Kursdaten
 
 GitHub holt jeden Börsentag nach US-Börsenschluss die Kurse von **S&P 500 und Nasdaq-100** (jede Aktie nur einmal, der Russell 2000 ist optional)
 und veröffentlicht sie zusammen mit der App als Webseite. Du öffnest nur den Link, die App lädt die
@@ -7,7 +7,7 @@ aktuellen Daten selbst. Eine Excel-Tabelle ist nicht mehr nötig (sie funktionie
 ## Einrichtung (einmalig, ca. 10 Minuten)
 
 1. **Konto anlegen:** auf github.com ein kostenloses Konto erstellen.
-2. **Repository anlegen:** oben rechts „+“ → „New repository“. Name zum Beispiel `minervini-screener`,
+2. **Repository anlegen:** oben rechts „+“ → „New repository“. Name zum Beispiel `MN-Screener`,
    Sichtbarkeit **Public** (nur dann ist GitHub Pages kostenlos). Auf „Create repository“ klicken.
 3. **Veröffentlichung einschalten (vor dem Hochladen):** im Repository „Settings“ → „Pages“ →
    bei „Source“ **GitHub Actions** wählen.
@@ -21,7 +21,7 @@ aktuellen Daten selbst. Eine Excel-Tabelle ist nicht mehr nötig (sie funktionie
 6. **Ersten Lauf starten:** Reiter „Actions“ → „Kurse aktualisieren und Seite veröffentlichen“ →
    „Run workflow“. Der erste Lauf dauert etwa 10 bis 25 Minuten. Danach läuft die Automatik
    Montag bis Freitag von selbst (22:30 UTC, also 23:30 oder 00:30 Uhr österreichischer Zeit).
-7. **App öffnen:** Adresse `https://DEIN-NAME.github.io/minervini-screener/`. Auf dem Handy kannst du die Seite
+7. **App öffnen:** Adresse `https://DEIN-NAME.github.io/MN-Screener/`. Auf dem Handy kannst du die Seite
    über das Teilen-Menü zum Home-Bildschirm hinzufügen.
 
 ## Was wo gespeichert wird
