@@ -51,7 +51,24 @@ ul.cr li{display:flex;gap:8px;padding:2px 0}
 .hint{font-size:13px;color:var(--mut);margin-top:2px}
 .cn{font-size:13px;font-weight:400;color:var(--mut);font-family:system-ui,sans-serif;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom}
 .tk+.cn{font-size:15px;max-width:none;white-space:normal}
-@media(min-width:900px){.hint{white-space:nowrap}.dwrap #dlist{flex:1 1 760px}}
+.st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.st .dot{margin:0}
+.dh{display:none}
+.sq{margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)}
+.sq h3{margin:0 0 6px;font-size:15px}
+.sq ol{margin:8px 0 0;padding-left:20px}.sq li{margin:4px 0;font-size:14px}
+@media(max-width:899px){.dl1>span:empty{display:none}}
+@media(min-width:900px){
+.dwrap #dlist{flex:1 1 760px;display:grid;grid-template-columns:auto auto auto minmax(0,1fr) auto auto auto auto auto auto;column-gap:14px;align-items:center}
+.dr,.dh{display:grid;grid-template-columns:subgrid;grid-column:1/-1;align-items:center}
+.dh{font-size:12px;color:var(--mut);padding:0 0 6px;text-transform:uppercase;letter-spacing:.03em}
+.dh+.dr{border-top:0}
+.dl1{display:contents}
+.dl1 button{margin-left:0;justify-self:end}
+.dr .hint{grid-column:1/-1;white-space:normal}
+.dr .cn{display:block;max-width:none;min-width:0}
+.dr .q,.dr .pr,.dr .lv,.dr .g,.dh .q,.dh .pr,.dh .lv,.dh .g{text-align:right;white-space:nowrap}
+.dr .span3{grid-column:span 3}
+}
 .bar{flex:1;height:8px;background:var(--bd);border-radius:4px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--ok)}
 .wki{display:inline-block;width:96px;margin:0;padding:3px 8px;font-size:13px;text-transform:uppercase}
@@ -77,6 +94,9 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <p id="dsum" class="sum"></p>
 <div id="liveb" class="small mut" style="margin:0 0 10px"></div>
 <div class="dwrap"><div id="dlist"></div><div id="dpie" class="dpie"></div></div>
+<div class="sq"><h3>Verkaufsaktie eintragen, Ersatz vorschlagen</h3>
+<label style="max-width:320px">Ticker der Aktie, die du verkaufen willst<input id="sq" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="z. B. AAPL"></label>
+<div id="sres" style="margin-top:8px"></div></div>
 <details style="margin-top:10px"><summary>Position hinzufügen oder ändern</summary>
 <div class="grid" style="margin-top:12px">
 <label>Ticker<input id="ht" autocapitalize="characters" autocomplete="off"></label>
@@ -178,7 +198,7 @@ const idbTx=(m,f)=>idbOpen().then(d=>new Promise((ok,no)=>{const t=d.transaction
 const fullSave=()=>{try{localStorage.setItem(K,JSON.stringify(S));return true}catch(e){return false}};
 const save=()=>{
   if(!idbOk){fullSave();return}
-  const o=Object.assign({},S);delete o.items;delete o.daily;delete o.meta;
+  const o=Object.assign({},S);delete o.swaps;delete o.items;delete o.daily;delete o.meta;
   idbTx('readwrite',st=>st.put({items:S.items,daily:S.daily||{},meta:S.meta||null},'data')).then(()=>{try{localStorage.setItem(K,JSON.stringify(o))}catch(e){}}).catch(()=>{idbOk=false;fullSave()});
 };
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -345,16 +365,45 @@ function buildRank(res){
   const a=res.map(x=>({t:x.it.t,s:scoreOf(x.r),rs:x.r.rs??0,d:x.r.dist??99})).filter(x=>x.s!=null).sort((u,v)=>v.s-u.s||v.rs-u.rs||u.d-v.d||(u.t<v.t?-1:1));
   RK={};a.forEach((x,i)=>RK[x.t]={s:x.s,r:i+1,n:a.length});
 }
+let SWAPS={},SWC=[];
+const swapCands=res=>res.filter(x=>x.r.st==='ok'&&!S.hold[x.it.t]).map(x=>({it:x.it,r:x.r,sc:scoreOf(x.r)})).filter(c=>c.sc!=null).sort((a,b)=>b.sc-a.sc);
+const swapBetter=(c,sc,rs)=>c.sc-sc>=(S.cfg.sw??15)&&c.r.rs-(rs??0)>=10;
 function swapPlan(res){
   const M=S.cfg.sw??15,K=S.cfg.sk??20,out={};
   const hs=depotRows().filter(x=>x.lv<2&&x.r&&x.pl).map(x=>({x,sc:scoreOf(x.r),g:x.pl.g})).filter(h=>h.sc!=null&&h.g<K).sort((a,b)=>a.sc-b.sc);
-  const cs=res.filter(x=>x.r.st==='ok'&&!S.hold[x.it.t]).map(x=>({it:x.it,r:x.r,sc:scoreOf(x.r)})).filter(c=>c.sc!=null).sort((a,b)=>b.sc-a.sc);
+  const cs=SWC=swapCands(res);
   const used=new Set();
   for(const c of cs){
-    const h=hs.find(h=>!used.has(h.x.h.t)&&c.sc-h.sc>=M&&c.r.rs-(h.x.r.rs??0)>=10);
+    const h=hs.find(h=>!used.has(h.x.h.t)&&swapBetter(c,h.sc,h.x.r.rs));
     if(h){used.add(h.x.h.t);out[h.x.h.t]={c,sc:h.sc,g:h.g,rs:h.x.r.rs}}
   }
   return out;
+}
+function renderSwapQ(){
+  const el=$('#sres');if(!el)return;
+  const q=$('#sq').value.trim();
+  if(!q){el.innerHTML='<p class="mut small" style="margin:0">Trage den Ticker der Aktie ein, die du verkaufen willst. Die App nennt dir, welche neue Aktie du dafür aufnehmen solltest. Sie prüft dabei nach denselben Regeln wie der Hinweis „Tausch prüfen“ in der Depotliste.</p>';return}
+  const u=normT(q),it=S.items.find(x=>normT(x.t)===u);
+  if(!it){el.innerHTML='<p class="mut small" style="margin:0">Keine geladene Aktie mit dem Ticker „'+esc(q)+'“ gefunden.</p>';return}
+  const d=depotRows().find(x=>x.h.t===it.t&&x.r),r=d?d.r:calc(it),sc=scoreOf(r),K=S.cfg.sk??20,M=S.cfg.sw??15;
+  const cs=SWC.filter(c=>c.it.t!==it.t),good=sc==null?[]:cs.filter(c=>swapBetter(c,sc,r.rs)),plan=SWAPS[it.t];
+  if(plan){const i=good.findIndex(c=>c.it.t===plan.c.it.t);if(i>0)good.unshift(good.splice(i,1)[0])}
+  const list=(good.length?good:cs).slice(0,3),notes=[];
+  let h=`<div><b>${tkn(it.t)}</b>: Score ${sc??'–'}, RS ${r.rs??'–'}`+(d?`, ${d.pl.g>=0?'+':''}${f2(d.pl.g)} % seit Einstieg, Wert ${usd(d.val)}`:'')+'</div>';
+  if(!d)notes.push('Die Aktie ist nicht im Depot. Verglichen wird nur nach Score und RS.');
+  if(sc==null)notes.push('Für diese Aktie gibt es keinen Stärke-Score (RS-Rating fehlt), deshalb ist kein Vergleich möglich.');
+  if(d&&d.pl.g>=K)notes.push(`Die Position liegt mit +${f2(d.pl.g)} % über der Gewinnschwelle von ${K} %. Der automatische Tausch-Hinweis bleibt deshalb aus (Gewinne laufen lassen). Die Liste unten zeigt trotzdem die Kandidaten.`);
+  if(d&&d.lv>=2)notes.push('Die Position ist laut Regeln Rot. Ein Tausch-Hinweis erscheint bei roten Positionen nicht, der Verkauf ergibt sich aus den Verkaufsregeln.');
+  if(plan&&good.length&&good[0].it.t===plan.c.it.t)notes.push('Der erste Vorschlag ist derselbe wie der Hinweis „Tausch prüfen“ in der Depotliste.');
+  else if(sc!=null&&!plan&&good.length&&d&&d.lv<2&&d.pl.g<K)notes.push('In der Depotliste steht für diese Aktie kein Hinweis, weil die Kandidaten dort bereits einer schwächeren Position zugeordnet sind.');
+  if(!list.length)h+='<div class="mut small" style="margin-top:6px">Es gibt aktuell keinen neuen Kaufkandidaten (Kriterien neu erfüllt, RS ab '+(S.cfg.rsm||80)+').</div>';
+  else{
+    h+=`<div style="margin-top:6px">${good.length?'<b>Vorschlag: stattdessen aufnehmen</b>':'<span style="color:var(--warn)"><b>Kein Kandidat überschreitet die Tauschschwelle</b></span> (mindestens +'+M+' Score und +10 RS gegenüber der Verkaufsaktie). Stärkste neue Kandidaten zur Information'}</div><ol>`+list.map(c=>{
+      const z=size(c.it,c.r.p),buy=z&&z.sh>=1?`Kauf ${z.sh.toLocaleString('de-DE')} Aktien, ${usd(z.pos)}`:'bei den aktuellen Einstellungen keine ganze Aktie möglich';
+      return `<li><b>${tkn(c.it.t)}</b>: Score ${c.sc}, RS ${c.r.rs}, ${buy}</li>`}).join('')+'</ol>';
+  }
+  if(notes.length)h+='<p class="mut small" style="margin:8px 0 0">'+notes.map(esc).join(' ')+'</p>';
+  el.innerHTML=h;
 }
 const swapTxt=(t,w)=>`⇄ Tausch prüfen: ${tkn(w.c.it.t)} (Score ${w.c.sc}, RS ${w.c.r.rs}, neu erfüllt) ist deutlich stärker als ${esc(t)} (Score ${w.sc}, RS ${w.rs??'–'}, ${w.g>=0?'+':''}${f2(w.g)} % seit Einstieg).`;
 const nameOf=it=>it.nm||NAMES[normT(it.t)]||'';
@@ -489,13 +538,17 @@ function drawPie(rows,tv){
 function renderDepot(){
   renderLive();
   const rows=depotRows(),eq=S.cfg.eq||1,col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'];
-  rows.forEach((x,i)=>{x.no=i+1;x.swap=(S.swaps||{})[x.h.t]});
+  rows.forEach((x,i)=>{x.no=i+1;x.swap=SWAPS[x.h.t]});
   const act=rows.filter(x=>x.lv<3),cnt=[0,1,2].map(k=>act.filter(x=>x.lv===k).length),tv=act.reduce((s,x)=>s+x.val,0);
   $('#dsum').innerHTML=rows.length?`${[2,1,0].map(k=>`<span class="dot" style="background:${col[k]}"></span> ${cnt[k]} ${nm[k]}`).join(' &nbsp; ')} · ${act.length} Position${act.length===1?'':'en'}, Wert ${usd(tv)} (${f2(tv/eq*100)} % vom Depot)`:'Noch keine Positionen im Depot.';
   drawPie(rows,tv);
-  $('#dlist').innerHTML=rows.map(x=>x.lv===3?
-    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:var(--mut)">${x.no}</span><span class="dot" style="background:var(--bd)"></span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}${wki(x.h)}<span class="mut small">${x.txt}</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div></div>`:
-    `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span><span class="dt">${esc(x.h.t)}</span>${nmH(x.h.t)}<span class="small" title="Stückzahl im Bestand"><b>${(x.h.qty-(x.h.sold||0)).toLocaleString('de-DE')}</b> Stk.</span>${wki(x.h)}<span>${px(x.r.p)}</span>${LIVE.p[x.h.t]?`<span class="small" style="color:var(--ok)" title="Live-Kurs">● live${LIVE.p[x.h.t].dp!=null?' <span style="color:'+(LIVE.p[x.h.t].dp>=0?'var(--ok)':'var(--bad)')+'">'+(LIVE.p[x.h.t].dp>=0?'+':'')+f2(LIVE.p[x.h.t].dp)+' % heute</span>':''}</span>`:''}<span style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span><button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button></div>${posLine(x)}<div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div>${x.swap?`<div class="hint" style="color:var(--warn)">${swapTxt(x.h.t,x.swap)}</div>`:''}</div>`).join('');
+  const nmC=t=>'<span class="cn">'+esc(nmOf(t)||'')+'</span>';
+  const head=rows.length?'<div class="dh"><span>Nr.</span><span>Status</span><span>Ticker</span><span>Firma</span><span class="q">Stück</span><span>WKN</span><span class="pr">Kurs</span><span class="lv">Live</span><span class="g">Seit Einstieg</span><span></span></div>':'';
+  $('#dlist').innerHTML=head+rows.map(x=>{
+    const del=`<button data-hdel="${esc(x.h.t)}" aria-label="${esc(x.h.t)} entfernen">✕</button>`;
+    if(x.lv===3)return `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:var(--mut)">${x.no}</span><span class="st"><span class="dot" style="background:var(--bd)"></span><span class="small mut">Beendet</span></span><span class="dt">${esc(x.h.t)}</span>${nmC(x.h.t)}<span class="q"></span>${wki(x.h)}<span class="mut small span3">${x.txt}</span>${del}</div></div>`;
+    const L=LIVE.p[x.h.t],live=L?`<span class="lv small" style="color:var(--ok)" title="Live-Kurs">● live${L.dp!=null?' <span style="color:'+(L.dp>=0?'var(--ok)':'var(--bad)')+'">'+(L.dp>=0?'+':'')+f2(L.dp)+' %</span>':''}</span>`:'<span class="lv"></span>';
+    return `<div class="dr" data-e="${esc(x.h.t)}"><div class="dl1"><span class="nb" style="background:${pcol(x.no)}">${x.no}</span><span class="st"><span class="dot" style="background:${col[x.lv]}"></span><span class="small" style="color:${x.lv===1?'var(--warn)':col[x.lv]}">${nm[x.lv]}</span></span><span class="dt">${esc(x.h.t)}</span>${nmC(x.h.t)}<span class="q small" title="Stückzahl im Bestand"><b>${(x.h.qty-(x.h.sold||0)).toLocaleString('de-DE')}</b> Stk.</span>${wki(x.h)}<span class="pr">${px(x.r.p)}</span>${live}<span class="g" style="color:${x.pl.g>=0?'var(--ok)':'var(--bad)'}">${x.pl.g>=0?'+':''}${f2(x.pl.g)} %</span>${del}</div>${posLine(x)}<div class="hint">${f2(x.val/eq*100)} % vom Depot · ${x.txt}</div>${x.swap?`<div class="hint" style="color:var(--warn)">${swapTxt(x.h.t,x.swap)}</div>`:''}</div>`}).join('');
 }
 function normT(t){return String(t).trim().toUpperCase().replace(/\*/g,'').replace(/[\s.]+/g,'-')}
 function syncDaily(){
@@ -630,7 +683,7 @@ function render(){
   const res0=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}});
   buildRank(res0);
   const stdCmp=(a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0),resStd=res0.slice().sort(stdCmp),res=sortRes(res0,stdCmp);
-  S.swaps=swapPlan(resStd);renderDepot();renderSearch();
+  SWAPS=swapPlan(resStd);renderDepot();renderSwapQ();renderSearch();
   renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
   const all=resStd.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),cand=[];let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>S.cfg.eq)break;cand.push(z);tp0+=z.pos}
   const tp=cand.reduce((s,z)=>s+z.pos,0),tr=cand.reduce((s,z)=>s+z.rk,0),eq=S.cfg.eq;
@@ -828,6 +881,7 @@ $('#bki').onclick=()=>$('#bkf').click();
 $('#bkf').onchange=async e=>{const f=e.target.files[0];if(f)$('#bkm').textContent=applyBackup(await f.text());e.target.value=''};
 $('#bkc').onclick=()=>{$('#bkt').value=JSON.stringify(backupObj(),null,1);$('#bkm').textContent='Text erzeugt. Kopiere ihn und bewahre ihn sicher auf.'};
 $('#bkp').onclick=()=>{$('#bkm').textContent=applyBackup($('#bkt').value)};
+$('#sq').oninput=renderSwapQ;
 $('#fk').value=S.fk||'';
 $('#fk').onchange=e=>{S.fk=e.target.value.trim();save();LIVE.p={};LIVE.fx=null;LIVE.at=0;LIVE.err='';render();liveFetch()};
 $('#liveb').addEventListener('click',e=>{if(e.target.closest('[data-live]'))liveFetch()});
