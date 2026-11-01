@@ -169,15 +169,8 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <div id="ixbox" hidden></div>
 <div class="row" id="autorow" hidden style="margin:0 0 12px"><button id="autob" class="pri">Daten jetzt neu abrufen</button></div>
 <div class="drop" id="drop"><label>CSV-Dateien (Yahoo Finance, Stooq) oder Excel-Tabelle (.xlsx), mehrere möglich. Du kannst die Dateien auch in dieses Feld ziehen.<input id="files" type="file" accept=".csv,.txt,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple></label></div>
-<p class="mut small" style="margin:8px 0 16px">Bei CSV-Dateien wird der Ticker aus dem Dateinamen gelesen, etwa AAPL.csv oder aapl.us.txt. In Excel-Tabellen steht er in der ersten Zeile über der Datumsspalte. Du kannst auch eine einzelne Aktie einfügen:</p>
-<div class="grid">
-<label>Ticker<input id="tk" placeholder="z. B. NVDA" autocapitalize="characters" autocomplete="off"></label>
-<label>RS-Rating (optional)<input id="rs" type="number" inputmode="numeric" min="1" max="99"></label>
-<label>Einstiegskurs (optional)<input id="en" type="number" inputmode="decimal" min="0"></label>
-</div>
-<label>CSV-Text einfügen (mind. 253 Handelstage für das RS-Rating, mit Kopfzeile)
-<textarea id="csv" rows="5" placeholder="Date,Open,High,Low,Close,Adj Close,Volume&#10;2025-10-20,…"></textarea></label>
-<div class="row"><button id="add" class="pri">Aktie analysieren</button><button id="demo">Demo laden</button><button id="clr">Liste leeren</button></div>
+<p class="mut small" style="margin:8px 0 0">Bei CSV-Dateien wird der Ticker aus dem Dateinamen gelesen, etwa AAPL.csv oder aapl.us.txt. In Excel-Tabellen steht er in der ersten Zeile über der Datumsspalte.</p>
+<div class="row"><button id="demo">Demo laden</button><button id="clr">Liste leeren</button></div>
 <p id="msg" class="mut small" role="status" style="margin:10px 0 0"></p></section>
 
 <section id="out"></section>
@@ -900,7 +893,7 @@ function render(){
   buildRank(res0);
   const stdCmp=(a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0),resStd=res0.slice().sort(stdCmp),res=sortRes(res0,stdCmp);
   SWAPS=swapPlan(resStd);renderDepot();renderSwapQ();renderSearch();
-  renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
+  renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Lade Kursdaten oder die Demo.</p>';return}
   const all0=resStd.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),all1=all0.filter(x=>gate(x.it,x.r).ok),mo=S.cfg.mo!=='off';
   const all=mo?all1.slice().sort((a,b)=>(MO[a.it.t]?MO[a.it.t].r:1e9)-(MO[b.it.t]?MO[b.it.t].r:1e9)):all1,cand=[];
   const held=depotRows().filter(x=>x.lv<3).reduce((s,x)=>s+x.val,0),room=Math.max(0,S.cfg.eq*(MX?MX.level/100:1)-held);
@@ -916,18 +909,6 @@ function render(){
 
 function add(it){S.items=S.items.filter(x=>x.t!==it.t);S.items.push(compact(it));save();render()}
 function addMany(a){const old=new Map(S.items.map(x=>[x.t,x]));a.forEach(n=>{const o=old.get(n.t);if(o){if(n.rs==null&&o.rs!=null)n.rs=o.rs;if(n.en==null&&o.en!=null)n.en=o.en}});const ts=new Set(a.map(x=>x.t));S.items=S.items.filter(x=>!ts.has(x.t)).concat(a.map(compact));save();render()}
-
-$('#add').onclick=()=>{
-  const t=$('#tk').value.trim().toUpperCase();
-  if(!t){msg('Bitte einen Ticker eintragen.');return}
-  const d=parse($('#csv').value);
-  if(!d){msg('Keine Kursdaten erkannt. Die CSV braucht eine Kopfzeile mit „Close“.');return}
-  if(d.c.length<200){msg('Zu wenig Daten: Es braucht mindestens 200 Handelstage, gefunden wurden '+d.c.length+'.');return}
-  const rs=parseFloat($('#rs').value),en=parseFloat($('#en').value);
-  add({t,c:d.c,h:d.h,l:d.l,dd:d.dd,tt:d.tt,av:d.av,rs:isFinite(rs)?rs:null,en:isFinite(en)?en:null});
-  msg(d.c.length<222?t+' hinzugefügt. Für den Trend der 200-Tage-Linie fehlen Daten (mind. 222 Handelstage).':t+' hinzugefügt.');
-  ['#tk','#rs','#en','#csv'].forEach(s=>$(s).value='');
-};
 
 const SY={d:['datum','date','data'],c:['schluss','schlusskurs','close','adj close','zamkniecie'],v:['volumen','volume','vol']};
 function parseGrid(g){
@@ -1000,11 +981,6 @@ async function loadFiles(fs){
       else if(d.c.length<200)bad.push(f.name+': nur '+d.c.length+' Handelstage, es braucht mindestens 200');
       else ok.push({t:d.tk||tkName(f.name),c:d.c,h:d.h,l:d.l,dd:d.dd,rs:null,en:null,tt:d.tt,av:d.av});
     }catch(x){bad.push(f.name+': '+(x&&x.message?x.message:'Datei nicht lesbar'))}
-  }
-  if(ok.length===1&&fs.length===1){
-    const o=ok[0],t=$('#tk').value.trim().toUpperCase(),rs=parseFloat($('#rs').value),en=parseFloat($('#en').value);
-    if(t)o.t=t;if(isFinite(rs))o.rs=rs;if(isFinite(en))o.en=en;
-    ['#tk','#rs','#en'].forEach(s=>$(s).value='');
   }
   if(xl||ok.length){S.meta=Object.assign({},S.meta||{},{at:Date.now(),file:xl||(fs.length===1?fs[0].name:fs.length+' Dateien')});if(xl&&!dly)S.meta.nodaily=true}
   if(ok.length)addMany(ok);else if(dly||xl){save();render()}
