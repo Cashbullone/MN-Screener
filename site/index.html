@@ -89,6 +89,17 @@ input[type=file]{padding:8px}
 .drop{border:2px dashed var(--bd);border-radius:10px;padding:14px;margin-bottom:8px;transition:background .15s,border-color .15s}
 .drop.on{border-color:var(--ok);background:var(--okbg)}
 details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);font-weight:600}
+.rkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:20px}
+.rkgrid h3{margin:0 0 4px;font-size:16px}
+ol.rkl{list-style:none;margin:8px 0 0;padding:0}
+.rk{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--bd);cursor:pointer;align-items:start}
+.rk:first-child{border-top:0}
+.rkn{font:700 15px Georgia,serif;color:var(--mut);padding-top:3px}
+.rk .tk{font-size:18px;text-decoration:none;color:var(--tx)}
+.rk .cn{max-width:150px}
+.rkr{text-align:right;line-height:1.2}.rkr b{display:block;font-size:20px}
+.rk .rkx{grid-column:2/-1}
+.rk .badge{margin:2px 0 0 4px;white-space:nowrap}
 </style></head><body><main>
 <h1>MN-Screener</h1>
 <p class="mut" style="margin:0">Prüft Aktien gegen das Trend Template und berechnet die Positionsgröße nach Risiko pro Trade.</p>
@@ -115,6 +126,10 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <div class="row"><button id="hsave" class="pri">Position speichern</button></div>
 <p id="hmsg" class="mut small" role="status" style="margin:10px 0 0"></p></details>
 <p class="mut small" style="margin:12px 0 0">Rot: Kursbedingung des Templates verletzt, Stop-Loss oder letzte Verkaufsstufe erreicht, oder (Momentum-Regeln) Kurs unter der 100-Tage-Linie, Momentum-Rang schlechter als eingestellt, Kurslücke über 15 % in 90 Tagen. Gelb: Verkaufsstufe erreicht, Teilverkauf fällig. Grün: alles in Ordnung. Tippe auf eine Zeile, um die Position zu ändern.</p></section>
+<section id="ranksec" hidden><h2>Ranglisten</h2>
+<p class="mut small" style="margin:0 0 12px">Die jeweils 15 besten Aktien deiner geladenen Liste, getrennt nach zwei Maßstäben. Tippe auf eine Zeile, dann zeigt die App unten alle Daten der Aktie.</p>
+<div id="rkmkt"></div>
+<div id="ranks" class="rkgrid"></div></section>
 <section><h2>Depot und Risiko</h2>
 <div class="grid">
 <label>Depotgröße (USD) <span id="eqe"></span><input id="eq" type="number" inputmode="decimal" min="0"></label>
@@ -202,6 +217,7 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <p>Frog in the Pan (Da, Gurun, Warachka; Gray und Vogel): Die App zählt im 12-1-Fenster die Tage mit Gewinn und mit Verlust. Wert = Vorzeichen der Rendite × (Anteil Verlusttage − Anteil Gewinntage), je kleiner, desto gleichmäßiger der Anstieg. Trägst du bei den Einstellungen einen Prozentwert ein (Gray und Vogel: 50), streicht die App unter den Titeln im Kaufbereich (beste Prozent des Momentum-Rangs) die sprunghaftesten Prozent als Kandidaten. Bei 0 ist der Filter aus, der Wert wird trotzdem auf der Karte gezeigt. Der Clenow-Wert belohnt glatte Verläufe schon über sein R², beide Filter überlappen deshalb teilweise.</p>
 <p>Sektorgrenze: Mit den automatischen Kursdaten kommt der Sektor je Aktie aus den Indexlisten (GICS, bei Nasdaq-Werten gegebenenfalls näherungsweise). Die Grenze (Standard 3 Positionen je Sektor) ist eine Annahme. Die Karte eines Kandidaten warnt, wenn der Sektor die Grenze erreicht hat, der Kauf bleibt aber möglich. Die Kandidatensumme überspringt solche Titel, und die Depot-Zusammenfassung zeigt die Sektoren. Fehlt der Sektor einer Aktie, gilt für sie keine Grenze. Der Sektor steht oben auf jeder Karte und in der Depotliste, die Liste lässt sich nach Sektor sortieren. Quellen in dieser Reihenfolge: Indexliste, Datei universe/sectors.csv im Repository, Yahoo Finance (Yahoo-Namen werden den GICS-Sektoren zugeordnet, einzelne Werte können deshalb vom GICS-Wert abweichen). „Unbekannt“ heißt, dass keine der Quellen einen Sektor lieferte.</p>
 <p>ATR-Positionsgröße (Clenow): ATR(20) ist der Durchschnitt der True Range der letzten 20 Handelstage. Stück = Depot × r ÷ ATR(20), begrenzt auf die Obergrenze je Position. Beispiel: 10.000 $ Depot, Kurs 100 $, ATR 2,50 $, r = 0,25 % ergibt 10 Aktien (1.000 $). Fehlt die ATR, etwa bei Excel-Daten ohne Hoch und Tief, rechnet die App nach Stop-Loss. Die Summe der Kandidaten ist durch den Investitionsgrad abzüglich der bereits gehaltenen Positionen begrenzt. Die Momentum-Reihenfolge der Kandidaten folgt dem Score, nicht dem Datum der Template-Erfüllung. Alles zusammen ist keine geprüfte Gesamtstrategie, sondern eine Kombination einzeln belegter Bausteine, und keine Anlageberatung.</p>
+<p>Ranglisten: Zwei getrennte Top-15-Listen über alle geladenen Aktien (die abgewählten Indizes zählen nicht mit). „Nach Minervini“: nur Aktien, die das Trend Template voll erfüllen (Kriterien 1 bis 7 und RS-Rating mindestens so hoch wie eingestellt, neu oder schon länger erfüllt), sortiert nach dem Stärke-Score (60 % RS-Rating, 40 % Nähe zum 52-Wochen-Hoch), bei Gleichstand nach RS-Rating, dann kleinerem Abstand zum Hoch. „Nach Trendstärke“: alle Aktien nach dem Momentum-Score, auch solche, die das Template nicht erfüllen. Die Zeile nennt zusätzlich den Rang in der jeweils anderen Liste und den Kaufstatus (Marktfilter und Momentum-Regeln wie bei den Kandidaten). Die Listen sind eine Rangfolge und keine Kaufempfehlung.</p>
 <p>Ausbruchssignal: Kriterien 1 bis 7 erfüllt, der Kurs liegt höchstens den eingestellten Abstand (Standard 5 %) unter dem 52-Wochen-Hoch und das Tagesvolumen ist mindestens so hoch wie eingestellt (Standard 1,4-mal Ø). Dafür braucht die App das Blatt „Tagesaktuell“.</p>
 <p>Stop-Methoden: „Fest“ liegt den eingestellten Prozentsatz unter dem Einstiegskurs. „Trailing“ liegt denselben Prozentsatz unter dem höchsten Schlusskurs seit dem Einstiegsdatum, nie tiefer als der feste Stop. „50-Tage-Linie“ nutzt die 50-Tage-Linie als Stop, nie tiefer als der feste Stop. Die Positionsgröße beim Kauf rechnet immer mit dem festen Stop.</p></details>
 <p>Stärke-Score (0 bis 100): 60 % RS-Rating plus 40 % Nähe zum 52-Wochen-Hoch (am Hoch 100 Punkte, 25 % darunter 0 Punkte). Tausch-Empfehlung: Ein neuer Kaufkandidat (7 von 7 Kriterien, neu erfüllt, RS ab Mindestwert) ersetzt die schwächste Depotposition, wenn sein Score mindestens den eingestellten Vorsprung höher liegt, sein RS-Rating mindestens 10 Punkte höher ist und die Depotposition nicht schon ein Verkaufssignal hat. Positionen mit mindestens dem eingestellten Gewinn bleiben im Depot, solange ihr Template hält (Gewinner laufen lassen).</p>
@@ -549,6 +565,52 @@ function buildRank(res){
   const a=res.map(x=>({t:x.it.t,s:scoreOf(x.r),rs:x.r.rs??0,d:x.r.dist??99})).filter(x=>x.s!=null).sort((u,v)=>v.s-u.s||v.rs-u.rs||u.d-v.d||(u.t<v.t?-1:1));
   RK={};a.forEach((x,i)=>RK[x.t]={s:x.s,r:i+1,n:a.length});
 }
+// Ranglisten: Top 15 nach Minervini (Trend Template voll erfüllt, Stärke-Score) und nach Trendstärke (Momentum-Score)
+const RKN=15;
+function renderRanks(res0){
+  const sec=$('#ranksec'),el=$('#ranks');
+  sec.hidden=!res0.length;
+  if(!res0.length){el.innerHTML='';$('#rkmkt').innerHTML='';return}
+  const byT={};res0.forEach(x=>{byT[x.it.t]=x});
+  const mn=res0.filter(x=>x.r.st==='ok'||x.r.st==='old').map(x=>({x,sc:scoreOf(x.r)})).filter(a=>a.sc!=null)
+    .sort((u,v)=>v.sc-u.sc||v.x.r.rs-u.x.r.rs||u.x.r.dist-v.x.r.dist||(u.x.it.t<v.x.it.t?-1:1));
+  const mnRank={};mn.forEach((a,i)=>{mnRank[a.x.it.t]=i+1});
+  const tr=Object.keys(MO).sort((a,b)=>MO[a].r-MO[b].r).filter(t=>byT[t]);
+  const chip=x=>{
+    const it=x.it,r=x.r;
+    if(S.hold[it.t])return '<span class="badge">Im Depot</span>';
+    if(r.st==='ok')return gate(it,r).ok?'<span class="badge ok">Kaufkandidat</span>':'<span class="badge rs">Template ✓, kein Kauf</span>';
+    if(r.st==='old')return '<span class="badge">Template ✓, nicht neu</span>';
+    return '<span class="badge">Template '+r.cnt+' von 8</span>';
+  };
+  const why=x=>{
+    if(S.hold[x.it.t]||x.r.st!=='ok')return '';
+    const g=gate(x.it,x.r);
+    return g.ok?'':'<div class="small rkx" style="color:var(--bad)">'+g.why.slice(0,2).map(esc).join(' · ')+(g.why.length>2?' · …':'')+'</div>';
+  };
+  const row=(i,x,main,lab,l2)=>{
+    const it=x.it,sc=it.sec?esc(secName(it.sec)):'';
+    return `<li class="rk" data-pick="${esc(it.t)}"><span class="rkn">${i}</span>
+    <div><a href="#" class="tk" data-pick="${esc(it.t)}">${esc(it.t)}</a>${nmH(it.t)}</div>
+    <div class="rkr"><b>${main}</b><span class="small mut">${lab}</span></div>
+    <div class="small mut rkx">${[sc,...l2].filter(Boolean).join(' · ')} ${chip(x)}</div>${why(x)}</li>`;
+  };
+  const minLi=mn.slice(0,RKN).map((a,i)=>{
+    const x=a.x,r=x.r,m=MO[x.it.t];
+    return row(i+1,x,a.sc,'Score',['RS '+r.rs,f1(r.dist)+' % unter 52-W-Hoch',x.ts?'erfüllt seit '+new Date(x.ts).toLocaleDateString('de-DE',{timeZone:'UTC'}):'',m?'Trendstärke-Rang '+m.r:'']);
+  }).join('');
+  const trLi=tr.slice(0,RKN).map((t,i)=>{
+    const x=byT[t],m=MO[t],mr=mnRank[t];
+    return row(i+1,x,m.s,'Score',['12-1-Rendite '+(m.m>=0?'+':'')+f1(m.m)+' %','Clenow '+f1(m.cl),mr?'Minervini-Rang '+mr:'']);
+  }).join('');
+  $('#rkmkt').innerHTML=mktBlocked()?`<p class="small" style="color:var(--bad);margin:0 0 12px"><b>Marktfilter Rot:</b> ${MX.why.map(esc).join('; ')}. Neukäufe sind gesperrt, die Listen zeigen trotzdem die Rangfolge.</p>`:'';
+  el.innerHTML=`<div><h3>Rangliste nach Minervini</h3><p class="small mut" style="margin:0">Nur Aktien mit voll erfülltem Trend Template (Kriterien 1 bis 7 und RS-Rating mindestens ${S.cfg.rsm||80}), sortiert nach Stärke-Score: 60 % RS-Rating, 40 % Nähe zum 52-Wochen-Hoch. ${mn.length} Aktie${mn.length===1?' erfüllt':'n erfüllen'} das Template.</p>${mn.length?'<ol class="rkl">'+minLi+'</ol>':'<p class="mut small">Aktuell erfüllt keine Aktie das Trend Template.</p>'}</div>
+  <div><h3>Rangliste nach Trendstärke</h3><p class="small mut" style="margin:0">Alle geladenen Aktien nach Momentum-Score: Durchschnitt der Prozentränge von 12-1-Monats-Rendite und Clenow-Wert (Steigung des Trends mal Gleichmäßigkeit), unabhängig vom Trend Template.</p>${tr.length?'<ol class="rkl">'+trLi+'</ol>':'<p class="mut small">Für den Momentum-Score braucht die App mindestens 2 Aktien mit je 253 Handelstagen Kursverlauf.</p>'}</div>`;
+}
+$('#ranks').addEventListener('click',e=>{
+  const pk=e.target.closest('[data-pick]');if(!pk)return;
+  e.preventDefault();$('#q').value=pk.dataset.pick;renderSearch();$('#srch').scrollIntoView({behavior:'smooth',block:'start'});
+});
 let SWAPS={},SWC=[];
 const swapCands=res=>res.filter(x=>x.r.st==='ok'&&!S.hold[x.it.t]&&gate(x.it,x.r).ok).map(x=>({it:x.it,r:x.r,sc:scoreOf(x.r)})).filter(c=>c.sc!=null).sort((a,b)=>b.sc-a.sc);
 const swapBetter=(c,sc,rs)=>c.sc-sc>=(S.cfg.sw??15)&&c.r.rs-(rs??0)>=10;
@@ -897,7 +959,7 @@ function renderStatus(){
 function render(){
   renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();buildMom();calcMarket();syncHold();SC=secCounts();
   const res0=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}});
-  buildRank(res0);
+  buildRank(res0);renderRanks(res0);
   const stdCmp=(a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0),resStd=res0.slice().sort(stdCmp),res=sortRes(res0,stdCmp);
   SWAPS=swapPlan(resStd);renderDepot();renderSwapQ();renderSearch();
   renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
