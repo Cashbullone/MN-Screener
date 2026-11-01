@@ -1,4 +1,4 @@
-# MN-Screener mit automatischen Kursdaten
+# MN-Screener (Minervini) mit automatischen Kursdaten
 
 GitHub holt jeden Börsentag nach US-Börsenschluss die Kurse von **S&P 500 und Nasdaq-100** (jede Aktie nur einmal, der Russell 2000 ist optional)
 und veröffentlicht sie zusammen mit der App als Webseite. Du öffnest nur den Link, die App lädt die
@@ -44,29 +44,31 @@ In `update.yml` unter „Kursdaten holen“ kannst du die auskommentierten Zeile
 
 Welche Indizes gescreent werden, wählst du außerdem direkt in der App über die Häkchen. Aktien, die in beiden Indizes stehen, zählen zum S&P 500 und erscheinen nicht doppelt.
 
-## Trend-Momentum-Regeln
+## Was die App zeigt
 
-Die App setzt zusätzlich die Regeln aus dem Doc „Trend-Momentum-Strategie für Aktien“ um. Alle Werte sind unter „Momentum-Strategie“ einstellbar, die Momentum-Regeln und die Marktsperre lassen sich abschalten (dann rechnet die App wie vorher).
+Der MN-Screener enthält **nur die Minervini-Strategie**. Die Turtle-Regeln stehen im TU-Screener, die reine Momentum-Strategie im MO-Screener, jeder ist ein eigenständiger Screener mit eigenem Repository.
 
-- **Indexfilter:** Das Skript holt täglich S&P 500 (`^GSPC`) und VIX (`^VIX`). Neukäufe sind gesperrt, wenn der S&P 500 unter seiner 200-Tage-Linie schließt oder zum letzten Monatsende unter dem 10-Monats-Durchschnitt lag. Bei Rot werden Kaufkandidaten gesperrt (die Karte nennt den Grund).
-- **Investitionsgrad:** bis 100 %, bei Monatssignal unter dem Durchschnitt bis 50 %. Volatilitätsbremse: Markt mehr als 10 % unter dem Hoch und VIX über 30 halbiert den Grad, danach Wiedereinstieg in Drittel pro Woche. Die Schwellen sind Annahmen.
-- **Momentum-Score:** Durchschnitt der Prozentränge von 12-1-Monats-Rendite und Clenow-Wert (annualisierte exponentielle Steigung über 90 Tage × R²). Kauf nur aus den besten 20 %, Ausstieg bei Rang schlechter als Top 30 %. Zusätzlich: Kurs über der 100-Tage-Linie, keine Tagesbewegung über 15 % in 90 Tagen, Kurs mindestens 10 $, Tagesumsatz mindestens 20 Mio. $.
-- **Positionsgröße:** Stück = Depot × r ÷ ATR(20), Standard r = 0,25 %, Obergrenze 15 % je Position. Das Skript berechnet die ATR(20) aus Hoch, Tief und Schluss und legt sie in `prices.json` ab. Wahlweise bleibt die bisherige Rechnung nach Stop-Loss.
-- **Frog in the Pan:** Gleichmäßigkeit des Anstiegs (Gewinn- gegen Verlusttage im 12-1-Fenster). Als Filter nutzbar, indem du unter „Momentum-Strategie“ einen Prozentwert einträgst (Gray/Vogel: 50). Standard 0 = aus, der Wert steht aber immer auf der Karte.
-- **Sektor:** Steht oben auf jeder Karte und in der Depotliste, die Liste lässt sich danach sortieren. Das Skript liest ihn aus den Indexlisten. Fehlt er dort (etwa bei Nasdaq-Werten ohne S&P-500-Mitgliedschaft), ergänzt es ihn aus `universe/sectors.csv` und sonst von Yahoo. Was danach noch fehlt, nennt der Lauf als Hinweis. Trage es dann in `universe/sectors.csv` ein (Zeile `TICKER,Sektor`).
-- **Sektorgrenze:** Das Skript liest den Sektor aus den Indexlisten. Ab der eingestellten Zahl an Positionen je Sektor (Standard 3) warnt die Karte, die Kandidatensumme überspringt den Titel. Fehlt der Sektor, greift die Grenze dort nicht.
-- **Depot-Ampel:** Zusätzlich Rot bei Kurs unter der 100-Tage-Linie, Rang schlechter als Top 30 % oder Kurslücke über 15 % im 90-Tage-Fenster.
-- Konnten S&P 500 oder VIX nicht geladen werden, läuft der Rest weiter. Die App zeigt dann nur die Marktbreite deiner Liste, und es gibt keine Marktsperre.
-- Die Rechenwege stehen in der App unter „So rechnet die App“. Das ist ein Regelwerk aus der Literatur und keine Anlageberatung. Backtests mit den heutigen Indexmitgliedern sind durch Survivorship Bias zu optimistisch.
+- **Trend Template:** die acht Kriterien (Kurs über 150- und 200-Tage-Linie, 150 über 200, 200-Tage-Linie steigt seit einem Monat, 50 über 150 und 200, Kurs über 50, mindestens 30 % über dem 52-Wochen-Tief, höchstens 25 % unter dem 52-Wochen-Hoch, RS-Rating mindestens 80). Das RS-Rating rechnet die App selbst unter allen geladenen Aktien.
+- **Orderzettel:** siehe unten.
+- **Depot:** Ampel je Position (Rot: Template verletzt, Stop-Loss oder letzte Verkaufsstufe erreicht, Gelb: Teilverkauf fällig), Verkaufsstufen, Stop-Methoden (fest, Trailing, 50-Tage-Linie), Tausch-Hinweis, Live-Kurse über Finnhub (optional).
+- **Rangliste:** die 15 stärksten Aktien mit erfülltem Trend Template, sortiert nach dem Stärke-Score (60 % RS-Rating, 40 % Nähe zum 52-Wochen-Hoch). Ein Tipp auf die Zeile öffnet unten alle Daten der Aktie. Das ist eine Rangfolge, keine Kaufempfehlung.
+- **Marktampel:** Marktbreite deiner geladenen Liste (Anteil über der 200- und 50-Tage-Linie). Sie warnt nur und sperrt nichts.
+- **Positionsgröße:** Stück = Depot × Risiko % ÷ (Einstieg × Stop-Loss %), begrenzt auf die maximale Position.
+- **Sektor:** steht auf jeder Karte, im Orderzettel und in der Depotliste, die Liste lässt sich danach sortieren. Das Skript liest ihn aus den Indexlisten. Fehlt er dort (etwa bei Nasdaq-Werten ohne S&P-500-Mitgliedschaft), ergänzt es ihn aus `universe/sectors.csv` und sonst von Yahoo. Was danach noch fehlt, nennt der Lauf als Hinweis (Zeile `TICKER,Sektor` in die Datei eintragen).
 
-## Ranglisten
+## Orderzettel
 
-Oben in der App (Bereich „Ranglisten“) stehen zwei getrennte Top-15-Listen über alle geladenen Aktien:
+Der Bereich „Orderzettel“ steht ganz oben und zeigt, was beim nächsten Handelstag zu tun ist. Jede Zeile nennt Ticker, Firmenname und Sektor, den Kurs, die Stückzahl und einen Hinweis.
 
-- **Rangliste nach Minervini:** nur Aktien mit voll erfülltem Trend Template (Kriterien 1 bis 7 und RS-Rating mindestens wie eingestellt, egal ob neu oder schon länger erfüllt), sortiert nach dem Stärke-Score (60 % RS-Rating, 40 % Nähe zum 52-Wochen-Hoch).
-- **Rangliste nach Trendstärke:** alle Aktien nach dem Momentum-Score (Durchschnitt der Prozentränge von 12-1-Monats-Rendite und Clenow-Wert), auch wenn sie das Template nicht erfüllen.
+- **Verkaufen:** Positionen mit erreichtem Stop-Loss, verletztem Trend Template oder erreichter letzter Verkaufsstufe. Verkauft wird die gesamte Restposition.
+- **Teilverkauf:** eine Verkaufsstufe (zum Beispiel +25 % → 10 % der Position) ist erreicht, die Stückzahl steht in der Zeile.
+- **Kaufen:** die Kaufkandidaten (Template neu erfüllt, RS ab Mindestwert) in der Reihenfolge des Stärke-Scores, mit Stückzahl aus der Positionsgröße und der Stop-Loss-Marke. Die Käufe rechnen mit den freien Plätzen („Max. Positionen“) und dem freien Geld, das die Verkäufe freigeben. Passt der nächste Kandidat nicht mehr, nennt die App den Grund.
+- **Aufträge für deine offenen Positionen:** je Position die Stop-Order (Marke nach deiner Stop-Methode) und die nächste Verkaufsstufe als Limit-Order.
+- **„Verkauf erledigt“ / „Kauf erledigt“:** trägt die Ausführung ins Depot ein (verkaufte Stück beziehungsweise neue Position zum angezeigten Kurs). Den echten Einstiegskurs kannst du im Depot nachtragen.
 
-Jede Zeile zeigt Sektor, die wichtigsten Kennzahlen, den Rang in der jeweils anderen Liste und den Kaufstatus (Marktfilter und Momentum-Regeln wie bei den Kandidaten). Ein Tipp auf die Zeile öffnet unten alle Daten der Aktie. Die Listen folgen den abgewählten Indizes und sind eine Rangfolge, keine Kaufempfehlung.
+Hinweis zu den Daten: Das Skript legt in `prices.json` weiterhin S&P 500, VIX und die ATR ab. Der MN-Screener nutzt sie nicht mehr.
+
+Das ist ein Regelwerk aus der Literatur und keine Anlageberatung. Backtests mit den heutigen Indexmitgliedern sind durch Survivorship Bias zu optimistisch.
 
 ## Wenn etwas nicht klappt
 
