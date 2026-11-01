@@ -278,6 +278,25 @@ def num(x):
     return f if math.isfinite(f) else None
 
 
+ATR_N = 20
+
+
+def atr20(d, n=ATR_N):
+    """ATR(20): einfacher Durchschnitt der True Range der letzten 20 Tage (Clenow).
+    True Range = max(Hoch-Tief, |Hoch-Vortagesschluss|, |Tief-Vortagesschluss|)."""
+    try:
+        hi, lo, cl = d["High"].astype(float), d["Low"].astype(float), d["Close"].astype(float)
+        pc = cl.shift(1)
+        tr = pd.concat([hi - lo, (hi - pc).abs(), (lo - pc).abs()], axis=1).max(axis=1, skipna=False)
+        t = tr.iloc[-n:].dropna()
+        if len(t) < n - 3:
+            return None
+        v = num(t.mean())
+        return round(v, 3) if v and v > 0 else None
+    except Exception:
+        return None
+
+
 def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_VOL, keep=KEEP, drop_after=None):
     """Baut das Ausgabeformat. raw: {Ticker: DataFrame mit Close, High, Low, Volume}."""
     frames = {}
@@ -326,6 +345,7 @@ def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_V
             "lo": round(float(w["Low"].min()), 2),
             "vol": int(num(d["Volume"].iloc[-1]) or 0),
             "av": int(av),
+            "atr": atr20(d),
             "pe": None,
         })
     return {
@@ -334,6 +354,45 @@ def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_V
         "dates": [to_unix_day(x) for x in dates],
         "stocks": stocks,
     }
+
+
+MKT_KEEP = 520          # ca. 2 Jahre Handelstage für S&P 500 und VIX
+
+
+def market_series(raw, drop_after=None, keep=MKT_KEEP):
+    """Baut {"sp": {"d": [...], "c": [...]}, "vix": {...}} aus rohen Yahoo-Daten (^GSPC, ^VIX)."""
+    out = {}
+    for key, sym in (("sp", "^GSPC"), ("vix", "^VIX")):
+        df = raw.get(sym)
+        if df is None or "Close" not in df.columns:
+            continue
+        c = df["Close"].dropna()
+        c.index = [pd.Timestamp(x).tz_localize(None) if pd.Timestamp(x).tzinfo else pd.Timestamp(x) for x in c.index]
+        c = c[~c.index.duplicated(keep="last")].sort_index()
+        if drop_after is not None:
+            c = c[c.index <= drop_after]
+        c = c.iloc[-keep:]
+        if len(c) < 120:
+            continue
+        out[key] = {"d": [to_unix_day(x) for x in c.index], "c": [round(float(v), 2) for v in c]}
+    return out if "sp" in out else None
+
+
+def fetch_market(drop_after=None):
+    """S&P 500 und VIX für Marktfilter und Volatilitätsbremse. Bei Fehler None: die App zeigt dann nur die Marktbreite."""
+    try:
+        import yfinance as yf
+        syms = ["^GSPC", "^VIX"]
+        df = yf.download(syms, period="2y", interval="1d", group_by="ticker", auto_adjust=False,
+                         threads=False, progress=False, timeout=30)
+        res = market_series(split_batch(df, syms), drop_after)
+        if res is None:
+            raise RuntimeError("keine Daten für ^GSPC")
+        return res
+    except Exception as e:
+        log("  Marktdaten nicht abrufbar:", str(e)[:120])
+        notice("S&P 500 / VIX nicht abrufbar: %s" % str(e)[:120], "warning")
+        return None
 
 
 def last_complete_day():
@@ -362,11 +421,12 @@ def main():
         return 1
     payload["failed"] = failed[:300]
     payload["fx"] = fetch_fx()
+    payload["mkt"] = fetch_market(last_complete_day())
     with open(os.path.join(OUT_DIR, "prices.json"), "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
     per_ix = {k: sum(1 for s in payload["stocks"] if k in s["ix"]) for k in INDEXES}
     meta = {"generated": payload["generated"], "asof": payload["asof"], "stocks": len(payload["stocks"]),
-            "per_index": per_ix, "fx": payload["fx"], "sources": status, "failed": len(failed),
+            "per_index": per_ix, "fx": payload["fx"], "market": bool(payload["mkt"]), "sources": status, "failed": len(failed),
             "filters": {"min_price": MIN_PRICE, "min_avg_volume": MIN_AVG_VOL}}
     with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=1)
