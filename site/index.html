@@ -114,7 +114,7 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 </div>
 <div class="row"><button id="hsave" class="pri">Position speichern</button></div>
 <p id="hmsg" class="mut small" role="status" style="margin:10px 0 0"></p></details>
-<p class="mut small" style="margin:12px 0 0">Rot: Kursbedingung des Templates verletzt, Stop-Loss oder letzte Verkaufsstufe erreicht. Gelb: Verkaufsstufe erreicht, Teilverkauf fällig. Grün: alles in Ordnung. Tippe auf eine Zeile, um die Position zu ändern.</p></section>
+<p class="mut small" style="margin:12px 0 0">Rot: Kursbedingung des Templates verletzt, Stop-Loss oder letzte Verkaufsstufe erreicht, oder (Momentum-Regeln) Kurs unter der 100-Tage-Linie, Momentum-Rang schlechter als eingestellt, Kurslücke über 15 % in 90 Tagen. Gelb: Verkaufsstufe erreicht, Teilverkauf fällig. Grün: alles in Ordnung. Tippe auf eine Zeile, um die Position zu ändern.</p></section>
 <section><h2>Depot und Risiko</h2>
 <div class="grid">
 <label>Depotgröße (USD) <span id="eqe"></span><input id="eq" type="number" inputmode="decimal" min="0"></label>
@@ -141,6 +141,21 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <label>Ausbruch: max. Abstand zum 52-Wochen-Hoch (%)<input id="bo" type="number" inputmode="decimal" min="0" step="0.5"></label>
 <label>Ausbruch: Tagesvolumen mindestens (× Ø)<input id="bv" type="number" inputmode="decimal" min="0" step="0.1"></label>
 </div></section>
+<section><h2>Momentum-Strategie</h2>
+<div class="grid">
+<label>Marktfilter sperrt Kaufkandidaten<select id="mf"><option value="on">Ein</option><option value="off">Aus (nur Hinweis)</option></select></label>
+<label>Momentum-Regeln für Käufe und Ausstiege<select id="mo"><option value="on">Ein</option><option value="off">Aus</option></select></label>
+<label>Kauf nur aus den besten … % im Momentum-Rang<input id="mt" type="number" inputmode="decimal" min="1" max="100"></label>
+<label>Ausstieg, wenn Rang schlechter als Top … %<input id="mx" type="number" inputmode="decimal" min="1" max="100"></label>
+<label>Mindestkurs für Käufe (USD)<input id="mp" type="number" inputmode="decimal" min="0"></label>
+<label>Mindest-Tagesumsatz für Käufe (Mio. USD)<input id="lq" type="number" inputmode="decimal" min="0"></label>
+<label>Positionsgröße nach<select id="sz"><option value="atr">ATR (Clenow)</option><option value="stop">Stop-Loss</option></select></label>
+<label>ATR-Methode: Risikoanteil r je Position (% vom Depot)<input id="rp" type="number" inputmode="decimal" min="0" step="0.05"></label>
+<label>ATR-Methode: Obergrenze je Position (% vom Depot)<input id="cap" type="number" inputmode="decimal" min="0"></label>
+<label>Volatilitätsbremse: Markt mehr als … % unter dem Hoch<input id="bd" type="number" inputmode="decimal" min="0" step="0.5"></label>
+<label>Volatilitätsbremse: VIX über<input id="bx" type="number" inputmode="decimal" min="0"></label>
+</div>
+<p class="mut small" style="margin:0">Regelwerk aus dem Doc „Trend-Momentum-Strategie für Aktien“. Clenow nutzt r = 0,10 % bei 20 bis 30 Positionen. Bei etwa 10 Positionen ist 0,25 % ein naheliegender Wert (Annahme). Die Schwellen der Volatilitätsbremse sind ebenfalls Annahmen und gehören in deinen Backtest.</p></section>
 <section><h2>Verkaufsregeln</h2>
 <label>Stufen (Anstieg % : Verkauf %), immer vom Einstiegskurs gerechnet<input id="sell" type="text" autocomplete="off" placeholder="25:10, 35:20, 45:30, 60:40, 100:100"></label>
 <label style="margin-top:12px">Der Verkaufsanteil bezieht sich auf<select id="base"><option value="rest">die Restposition</option><option value="orig">die ursprüngliche Position</option></select></label>
@@ -180,6 +195,9 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 <p>Trend Template: Kurs über 150- und 200-Tage-Linie, 150 über 200, 200-Tage-Linie steigt seit einem Monat (22 Handelstage), 50 über 150 und 200, Kurs über 50, mindestens 30 % über dem 52-Wochen-Tief, höchstens 25 % unter dem 52-Wochen-Hoch, RS-Rating mindestens so hoch wie eingestellt (Standard 80). Das RS-Rating berechnet die App selbst: Kursentwicklung der letzten 12 Monate (jüngstes Quartal 40 %, die drei davor je 20 %), dann Rang 1 bis 99 unter allen geladenen Aktien. Das ist eine Näherung und nicht identisch mit dem IBD-Wert. Je mehr Aktien du lädst, desto aussagekräftiger wird der Rang. Eigene Werte in der Aktienkarte haben Vorrang.</p>
 <p>Positionsgröße: Stück = Depot × Risiko % ÷ (Einstieg × Stop %). Die Position wird zusätzlich auf den Maximalanteil am Depot begrenzt. Bei vielen Kandidaten fasst die App die obersten Titel der Liste zusammen, solange sie ins Depot passen und die eingestellte Maximalzahl an Positionen nicht überschritten ist. Verkaufsregeln: Der Gewinn wird immer vom Einstiegskurs gerechnet, und jede erreichte Stufe verkauft den eingestellten Anteil. Mit Stückzahl rechnet die App Aktien aus, „Schon verkauft“ zieht bereits ausgeführte Verkäufe ab. Bei Kursen unter dem Stop-Loss meldet die App den Verkauf der gesamten Position. Das Datum „erfüllt seit“ gilt für die Kriterien 1 bis 7 und zeigt den Beginn der aktuellen ununterbrochenen Serie, geprüft mit Schlusskursen. Das RS-Rating fehlt dort, weil es nur für den letzten Tag berechnet wird. Sortierung: zuerst Aktien mit erfülltem Trend Template, davon die mit dem neuesten Datum zuerst, bei gleichem Datum nach höherem RS-Rating, danach die übrigen. Kaufkandidat ist, wer das Trend Template neu erfüllt (Serie begann vor höchstens der eingestellten Zahl an Handelstagen) und mindestens das eingestellte RS-Rating hat. Das Handelsvolumen ist der Durchschnitt der letzten 50 Tage, „hoch“ und „niedrig“ richten sich nach den eingestellten Schwellen. Depot-Ampel: Rot bei verletzter Kursbedingung des Templates (Kriterien 1 bis 7), erreichtem Stop-Loss oder erreichter letzter Verkaufsstufe. Gelb, wenn eine Verkaufsstufe erreicht ist und noch Aktien zu verkaufen sind. Sonst Grün. Das RS-Rating zählt für die Ampel nicht.</p>
 <p>Marktampel: Die App zählt unter allen geladenen Aktien, wie viele über ihrer 200- und 50-Tage-Linie schließen. Grün: mindestens der eingestellte Anteil über der 200-Tage-Linie (Standard 60 %) und mindestens 50 % über der 50-Tage-Linie. Rot: weniger als der eingestellte Anteil (Standard 45 %) über der 200-Tage-Linie oder weniger als 35 % über der 50-Tage-Linie. Sonst Gelb. Das ist die Breite deiner Liste und kein Index, die Schwellen sind meine Richtwerte. Die Ampel sperrt keine Kandidaten, sie warnt nur.</p>
+<p>Indexfilter: Mit den automatischen Kursdaten kommen S&amp;P 500 und VIX. Neukäufe sind gesperrt, wenn der S&amp;P 500 unter seiner 200-Tage-Linie schließt oder zum letzten Monatsende unter dem Durchschnitt der letzten 10 Monatsschlusskurse lag (Faber). Der laufende Monat zählt erst, wenn er abgeschlossen ist. Der Investitionsgrad ist höchstens 100 %, bei Monatssignal unter dem Durchschnitt höchstens 50 % (Annahme). Volatilitätsbremse: Liegt der S&amp;P 500 mehr als die eingestellten 10 % unter seinem Hoch der letzten 252 Handelstage und der VIX über 30, halbiert sich der Investitionsgrad. Danach steigt er pro Woche um ein Drittel der Lücke bis 100 %. Alle Schwellen sind Annahmen, keine Studienwerte.</p>
+<p>Momentum-Score: Prozentrang (1 bis 99) der 12-1-Monats-Rendite (Kurs vor 21 Handelstagen gegen Kurs vor 252 Handelstagen) und des Clenow-Werts, davon der Durchschnitt. Clenow-Wert = annualisierte exponentielle Regressionssteigung der letzten 90 Handelstage (250 Tage Jahr) × R², in Prozent. Der Rang ergibt sich aus dem Score unter allen geladenen Aktien. Kauf nur aus den besten 20 %, Ausstieg, wenn der Rang schlechter als Top 30 % ist (der Abstand spart Umschichtungen). Weitere Kaufbedingungen: Kurs über der 100-Tage-Linie, keine Tagesbewegung über 15 % in den letzten 90 Handelstagen (Schlusskurs zu Schlusskurs), Kurs mindestens 10 $, Tagesumsatz mindestens 20 Mio. $. Ausstieg (Depot-Ampel Rot): Kurs unter der 100-Tage-Linie, Rang schlechter als Top 30 %, Kurslücke über 15 % im 90-Tage-Fenster, dazu die bisherigen Regeln. Die Momentum-Regeln lassen sich in den Einstellungen abschalten.</p>
+<p>ATR-Positionsgröße (Clenow): ATR(20) ist der Durchschnitt der True Range der letzten 20 Handelstage. Stück = Depot × r ÷ ATR(20), begrenzt auf die Obergrenze je Position. Beispiel: 10.000 $ Depot, Kurs 100 $, ATR 2,50 $, r = 0,25 % ergibt 10 Aktien (1.000 $). Fehlt die ATR, etwa bei Excel-Daten ohne Hoch und Tief, rechnet die App nach Stop-Loss. Die Summe der Kandidaten ist durch den Investitionsgrad abzüglich der bereits gehaltenen Positionen begrenzt. Die Momentum-Reihenfolge der Kandidaten folgt dem Score, nicht dem Datum der Template-Erfüllung. Alles zusammen ist keine geprüfte Gesamtstrategie, sondern eine Kombination einzeln belegter Bausteine, und keine Anlageberatung.</p>
 <p>Ausbruchssignal: Kriterien 1 bis 7 erfüllt, der Kurs liegt höchstens den eingestellten Abstand (Standard 5 %) unter dem 52-Wochen-Hoch und das Tagesvolumen ist mindestens so hoch wie eingestellt (Standard 1,4-mal Ø). Dafür braucht die App das Blatt „Tagesaktuell“.</p>
 <p>Stop-Methoden: „Fest“ liegt den eingestellten Prozentsatz unter dem Einstiegskurs. „Trailing“ liegt denselben Prozentsatz unter dem höchsten Schlusskurs seit dem Einstiegsdatum, nie tiefer als der feste Stop. „50-Tage-Linie“ nutzt die 50-Tage-Linie als Stop, nie tiefer als der feste Stop. Die Positionsgröße beim Kauf rechnet immer mit dem festen Stop.</p></details>
 <p>Stärke-Score (0 bis 100): 60 % RS-Rating plus 40 % Nähe zum 52-Wochen-Hoch (am Hoch 100 Punkte, 25 % darunter 0 Punkte). Tausch-Empfehlung: Ein neuer Kaufkandidat (7 von 7 Kriterien, neu erfüllt, RS ab Mindestwert) ersetzt die schwächste Depotposition, wenn sein Score mindestens den eingestellten Vorsprung höher liegt, sein RS-Rating mindestens 10 Punkte höher ist und die Depotposition nicht schon ein Verkaufssignal hat. Positionen mit mindestens dem eingestellten Gewinn bleiben im Depot, solange ihr Template hält (Gewinner laufen lassen).</p>
@@ -190,7 +208,7 @@ details{font-size:14px;color:var(--mut)}summary{cursor:pointer;color:var(--tx);f
 const $=s=>document.querySelector(s),K='mvn1';
 let S={cfg:{eq:50000,risk:1.25,stop:7.5,max:25},items:[]};
 try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
-S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12,sw:15,sk:20},S.cfg);
+S.cfg=Object.assign({eq:50000,risk:1.25,stop:7.5,max:25,np:10,sellTxt:'25:10, 35:20, 45:30, 60:40, 100:100',base:'rest',rsm:80,nw:5,vh:1000000,vl:400000,mg:60,mr:45,bo:5,bv:1.4,sm:'fix',fx:1.12,sw:15,sk:20,mo:'on',mf:'on',mt:20,mx:30,mp:10,lq:20,sz:'atr',rp:0.25,cap:15,bd:10,bx:30},S.cfg);
 S.hold=S.hold||{};
 S.sort=Object.assign({k:'std',d:1},S.sort);
 S.ixf=Object.assign({SP500:true,NDX:true,R2000:true},S.ixf);
@@ -270,13 +288,129 @@ function calc(it){
   return {p,s50,s150,s200,hi,lo,t,cnt,st,rs,dist,rel,bo,rank:st==='ok'?3:st==='old'?2:st==='rs'?1:0};
 }
 
-function size(it,p){
+function sizeStop(it,p){
   const {eq,risk,stop,max}=S.cfg;
   if(!(eq>0&&risk>0&&stop>0&&max>0))return null;
   const en=it.en||p,rps=en*stop/100;
   const byRisk=Math.floor(eq*risk/100/rps),byMax=Math.floor(eq*max/100/en);
   const sh=Math.max(0,Math.min(byRisk,byMax)),pos=sh*en;
-  return {en,sh,pos,pct:pos/eq*100,rk:sh*rps,rkp:sh*rps/eq*100,sl:en-rps,cap:byMax<byRisk};
+  return {en,sh,pos,pct:pos/eq*100,rk:sh*rps,rkp:sh*rps/eq*100,sl:en-rps,cap:byMax<byRisk,mode:'stop'};
+}
+// Positionsgröße: ATR-Methode (Clenow): Stück = Depot × r ÷ ATR(20), begrenzt auf die Obergrenze je Position.
+// Fehlt die ATR (z. B. bei Excel-Daten ohne Hoch/Tief), rechnet die App nach Stop-Loss.
+function size(it,p){
+  if(S.cfg.sz==='atr'){
+    const {eq,stop,rp,cap}=S.cfg,a=it.atr;
+    if(a>0&&eq>0&&rp>0&&cap>0){
+      const en=it.en||p,byRisk=Math.floor(eq*rp/100/a),byMax=Math.floor(eq*cap/100/en);
+      const sh=Math.max(0,Math.min(byRisk,byMax)),pos=sh*en;
+      return {en,sh,pos,pct:pos/eq*100,rk:sh*a,rkp:sh*a/eq*100,sl:stop>0?en*(1-stop/100):null,cap:byMax<byRisk,mode:'atr',atr:a};
+    }
+    const z=sizeStop(it,p);if(z)z.fb=!(a>0);return z;
+  }
+  return sizeStop(it,p);
+}
+
+/* ---------- Trend-Momentum-Regeln: Marktfilter, Momentum-Score, Ausstiegsregeln ---------- */
+const f1=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1,minimumFractionDigits:1});
+// ATR(20): einfacher Durchschnitt der True Range der letzten 20 Tage
+function atr20(c,h,l){
+  const n=c.length,N=20;
+  if(!h||!l||h.length!==n||l.length!==n||n<N+1)return null;
+  let s=0;
+  for(let i=n-N;i<n;i++){const t=Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1]));if(!isFinite(t))return null;s+=t}
+  return s>0?s/N:null;
+}
+// 12-1-Rendite (12 Monate ohne den letzten Monat) und Clenow-Wert (annualisierte exponentielle Steigung über 90 Tage × R²)
+function momRaw(c){
+  const n=c.length,o={m:null,cl:null,sl:null,r2:null};
+  if(n>=253&&c[n-22]>0&&c[n-253]>0)o.m=c[n-22]/c[n-253]-1;
+  if(n>=90){
+    const N=90;let sx=0,sy=0,sxx=0,sxy=0,syy=0,ok=true;
+    for(let i=0;i<N;i++){const v=c[n-N+i];if(!(v>0)){ok=false;break}const y=Math.log(v);sx+=i;sy+=y;sxx+=i*i;sxy+=i*y;syy+=y*y}
+    const dx=N*sxx-sx*sx,dy=N*syy-sy*sy;
+    if(ok&&dx>0){const b=(N*sxy-sx*sy)/dx,r2=dy>0?Math.pow(N*sxy-sx*sy,2)/(dx*dy):0;o.sl=Math.exp(b*250)-1;o.r2=r2;o.cl=o.sl*100*r2}
+  }
+  return o;
+}
+// Momentum-Score = Durchschnitt der Prozentränge (1 bis 99) von 12-1-Rendite und Clenow-Wert unter allen geladenen Aktien
+let MO={};
+function buildMom(){
+  const V=[];
+  vis().forEach(it=>{const o=momRaw(it.c);if(o.m!=null&&o.cl!=null&&isFinite(o.m)&&isFinite(o.cl))V.push(Object.assign({t:it.t},o))});
+  const N=V.length;MO={};
+  if(N<2)return N;
+  const pct=k=>{const s=V.map(x=>x[k]).sort((a,b)=>a-b);return v=>{let lo=0,hi=N;while(lo<hi){const mid=(lo+hi)>>1;if(s[mid]<v)lo=mid+1;else hi=mid}return Math.max(1,Math.min(99,1+98*lo/(N-1)))}};
+  const pm=pct('m'),pc=pct('cl');
+  V.forEach(x=>{x.pm=pm(x.m);x.pc=pc(x.cl);x.sc=(x.pm+x.pc)/2});
+  V.slice().sort((a,b)=>b.sc-a.sc||b.cl-a.cl||(a.t<b.t?-1:1)).forEach((x,i)=>{MO[x.t]={m:x.m*100,cl:x.cl,sl:x.sl*100,r2:x.r2,pm:Math.round(x.pm),pc:Math.round(x.pc),s:Math.round(x.sc),r:i+1,n:N,top:(i+1)/N*100}});
+  return N;
+}
+// 100-Tage-Linie und Kurslücke (größte Tagesbewegung der letzten 90 Handelstage, Schlusskurs zu Schlusskurs)
+function xinfo(it,r){
+  const c=it.c,n=c.length,s100=sma(c,100);let gap=0;
+  if(n>=91)for(let i=n-90;i<n;i++){const g=Math.abs(c[i]/c[i-1]-1);if(g>gap)gap=g}
+  return {s100,below100:s100!=null&&r.p<s100,gap:gap*100,gapHit:gap>.15};
+}
+function momExit(it,r){
+  const x=xinfo(it,r),m=MO[it.t],a=[];
+  if(x.below100)a.push('Kurs unter der 100-Tage-Linie ('+f2(x.s100)+')');
+  if(m&&m.top>S.cfg.mx)a.push('Momentum-Rang nur noch Top '+f1(m.top)+' % (Grenze '+S.cfg.mx+' %)');
+  if(x.gapHit)a.push('Kurslücke über 15 % in den letzten 90 Tagen ('+f1(x.gap)+' %)');
+  return a;
+}
+// Marktfilter: S&P 500 gegen 200-Tage-Linie (täglich) und gegen den 10-Monats-Durchschnitt (Monatsende), dazu Volatilitätsbremse
+let MKT=null,MX=null;
+function calcMarket(){
+  MX=null;
+  const m=MKT&&MKT.sp&&Array.isArray(MKT.sp.c)&&Array.isArray(MKT.sp.d)&&MKT.sp.c.length===MKT.sp.d.length&&MKT.sp.c.length>=210?MKT:null;
+  if(!m)return;
+  const c=m.sp.c,d=m.sp.d,n=c.length,p=c[n-1],s200=sma(c,200),above200=p>s200;
+  const mk=i=>{const t=new Date(d[i]*864e5);return t.getUTCFullYear()*12+t.getUTCMonth()};
+  const me=[];
+  for(let i=0;i<n;i++)if(i===n-1||mk(i+1)!==mk(i))me.push(i);
+  const lastD=new Date(d[n-1]*864e5),nb=new Date(lastD);
+  do{nb.setUTCDate(nb.getUTCDate()+1)}while(nb.getUTCDay()===0||nb.getUTCDay()===6);
+  if(nb.getUTCMonth()===lastD.getUTCMonth())me.pop();      // laufender Monat ist noch nicht abgeschlossen
+  const mon=me.slice(-10),mAvg=mon.length===10?mon.reduce((s,i)=>s+c[i],0)/10:null,mCur=mon.length?c[mon[mon.length-1]]:null;
+  const below=mAvg!=null?mCur<mAvg:null;
+  const vx=m.vix&&Array.isArray(m.vix.c)&&Array.isArray(m.vix.d)&&m.vix.c.length===m.vix.d.length&&m.vix.c.length?new Map(m.vix.d.map((x,i)=>[x,m.vix.c[i]])):null;
+  const ddAt=i=>{let hi=0;for(let k=Math.max(0,i-251);k<=i;k++)if(c[k]>hi)hi=c[k];return (1-c[i]/hi)*100};
+  const br=i=>{const v=vx?vx.get(d[i]):null;return v!=null&&ddAt(i)>S.cfg.bd&&v>S.cfg.bx};
+  const ddNow=ddAt(n-1),vixNow=vx?m.vix.c[m.vix.c.length-1]:null,brakeNow=br(n-1);
+  let lastB=-1;
+  if(vx)for(let i=n-1;i>=0&&d[n-1]-d[i]<=28;i--){if(br(i)){lastB=i;break}}
+  const w=lastB<0?null:Math.floor((d[n-1]-d[lastB])/7);
+  let f=1,stage='';
+  if(brakeNow){f=.5;stage='aktiv: Markt '+f1(ddNow)+' % unter dem Hoch, VIX '+f1(vixNow)}
+  else if(lastB>=0&&w<3){f=.5+.5*w/3;stage='Wiedereinstieg, Woche '+(w+1)+' von 3'}
+  const level=Math.round((below===true?.5:1)*f*100),why=[];
+  if(!above200)why.push('S&P 500 unter der 200-Tage-Linie');
+  if(below===true)why.push('S&P 500 lag zum letzten Monatsende unter dem 10-Monats-Durchschnitt');
+  const block=why.length>0;
+  MX={p,s200,above200,d:d[n-1],ddNow,vixNow,hasVix:!!vx,mDate:mon.length?d[mon[mon.length-1]]:null,mAvg,mCur,below,brakeNow,stage,f,level,why,block,lv:block?2:(f<1?1:0)};
+}
+const mktBlocked=()=>!!(MX&&MX.block&&S.cfg.mf!=='off');
+// Kaufprüfung: Marktfilter plus Momentum-Regeln (Rang, 100-Tage-Linie, Kurslücke, Mindestkurs, Mindestumsatz)
+function gate(it,r){
+  const why=[],mk=mktBlocked();
+  if(mk)why.push('Marktfilter Rot ('+MX.why.join('; ')+')');
+  if(S.cfg.mo!=='off'){
+    const m=MO[it.t],x=xinfo(it,r),dv=it.dq&&it.dq.ok?it.dq:null,av=dv?dv.avg:it.av;
+    if(!m)why.push('kein Momentum-Rang (zu wenig Kursverlauf)');
+    else if(m.top>S.cfg.mt)why.push('Momentum-Rang nur Top '+f1(m.top)+' % (Kauf nur aus den besten '+S.cfg.mt+' %)');
+    if(x.below100)why.push('Kurs unter der 100-Tage-Linie');
+    if(x.gapHit)why.push('Kurslücke über 15 % in 90 Tagen');
+    if(r.p<S.cfg.mp)why.push('Kurs unter '+S.cfg.mp+' $');
+    if(av>0&&av*r.p<S.cfg.lq*1e6)why.push('Tagesumsatz unter '+S.cfg.lq+' Mio. $');
+  }
+  return {ok:!why.length,mk,why};
+}
+function momLine(it,r){
+  const m=MO[it.t],x=xinfo(it,r);
+  const mm=m?`Momentum-Score <b>${m.s}</b> (Rang ${m.r} von ${m.n}, Top ${f1(m.top)} %) · 12-1-Rendite <b>${m.m>=0?'+':''}${f1(m.m)} %</b> · Clenow-Wert <b>${f1(m.cl)}</b> (Steigung ${f1(m.sl)} % p. a. × R² ${f2(m.r2)})`:'Momentum-Score: nicht berechnet (zu wenig Kursverlauf oder Index abgewählt)';
+  const fl=[x.s100?(x.below100?'<span style="color:var(--bad)">Kurs unter der 100-Tage-Linie</span>':'Kurs über der 100-Tage-Linie'):null,x.gapHit?'<span style="color:var(--bad)">Kurslücke '+f1(x.gap)+' % in 90 Tagen</span>':'keine Kurslücke über 15 %',it.atr>0?'ATR(20) '+f2(it.atr)+' $ ('+f2(it.atr/r.p*100)+' % vom Kurs)':'ATR(20) nicht verfügbar'].filter(Boolean).join(' · ');
+  return `<div class="small" style="margin-top:6px">${mm}</div><div class="small" style="margin-top:2px">${fl}</div>`;
 }
 
 let showAll=false;
@@ -343,6 +477,9 @@ const posLine=x=>{
 const SORTS={
   std:{n:'Standard (Kaufkandidaten zuerst, dann neueste Erfüllung, dann RS)'},
   score:{n:'Stärke-Score',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>RK[x.it.t]?RK[x.it.t].s*1e6-RK[x.it.t].r:null},
+  mom:{n:'Momentum-Score (12-1 und Clenow)',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>MO[x.it.t]?MO[x.it.t].s*1e6-MO[x.it.t].r:null},
+  m121:{n:'12-1-Monats-Rendite',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>MO[x.it.t]?MO[x.it.t].m:null},
+  clenow:{n:'Clenow-Wert (Steigung × R²)',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>MO[x.it.t]?MO[x.it.t].cl:null},
   rank:{n:'Rang',dir:['1 → letzter','letzter → 1'],desc:false,v:x=>RK[x.it.t]?RK[x.it.t].r:null},
   date:{n:'Kriterien 1 bis 7 erfüllt seit (Datum)',dir:['neu → alt','alt → neu'],desc:true,v:x=>x.ts||null},
   rs:{n:'RS-Rating',dir:['hoch → niedrig','niedrig → hoch'],desc:true,v:x=>x.r.rs},
@@ -371,7 +508,7 @@ function buildRank(res){
   RK={};a.forEach((x,i)=>RK[x.t]={s:x.s,r:i+1,n:a.length});
 }
 let SWAPS={},SWC=[];
-const swapCands=res=>res.filter(x=>x.r.st==='ok'&&!S.hold[x.it.t]).map(x=>({it:x.it,r:x.r,sc:scoreOf(x.r)})).filter(c=>c.sc!=null).sort((a,b)=>b.sc-a.sc);
+const swapCands=res=>res.filter(x=>x.r.st==='ok'&&!S.hold[x.it.t]&&gate(x.it,x.r).ok).map(x=>({it:x.it,r:x.r,sc:scoreOf(x.r)})).filter(c=>c.sc!=null).sort((a,b)=>b.sc-a.sc);
 const swapBetter=(c,sc,rs)=>c.sc-sc>=(S.cfg.sw??15)&&c.r.rs-(rs??0)>=10;
 function swapPlan(res){
   const M=S.cfg.sw??15,K=S.cfg.sk??20,out={};
@@ -432,7 +569,7 @@ function renderSearch(){
     +card(it,r)+(more.length?'<p class="small mut" style="margin:8px 0 0">Weitere Treffer: '+more.map(x=>`<a href="#" data-pick="${esc(x.t)}">${esc(x.t)}</a>`).join(', ')+(m.length>13?' …':'')+'</p>':'');
 }
 function compact(it){
-  if(it.h){const w=Math.min(252,it.c.length);it.hi=Math.max(...it.h.slice(-w));it.lo=Math.min(...it.l.slice(-w));delete it.h;delete it.l}
+  if(it.h){const w=Math.min(252,it.c.length);it.hi=Math.max(...it.h.slice(-w));it.lo=Math.min(...it.l.slice(-w));it.atr=atr20(it.c,it.h,it.l);delete it.h;delete it.l}
   return it;
 }
 function autoRS(){
@@ -514,10 +651,12 @@ function depotRows(){
     const r=calc(it),pl=calcPlan(it,r.p),val=(h.qty-(h.sold||0))*r.p;
     const fails=r.t.slice(0,7).filter(x=>x[1]===false).map(x=>x[0]);
     const full=pl.st.some(s=>s.hit&&s.pc>=100)&&pl.todo>0;
+    const mxr=S.cfg.mo!=='off'?momExit(it,r):[];
     let lv=0,txt;
-    if(pl.stopHit||full||fails.length){
+    if(pl.stopHit||full||fails.length||mxr.length){
       lv=2;
-      txt=pl.stopHit?'Stop erreicht (Kurs unter '+px(pl.stop)+(pl.stopTxt==='fix'?'':', '+pl.stopTxt)+'): gesamte Position verkaufen':full?'Letzte Verkaufsstufe erreicht: Rest verkaufen':'Template verletzt ('+fails.length+' von 7 Kursbedingungen): '+fails.slice(0,2).join('; ')+(fails.length>2?' und '+(fails.length-2)+' weitere':'');
+      txt=pl.stopHit?'Stop erreicht (Kurs unter '+px(pl.stop)+(pl.stopTxt==='fix'?'':', '+pl.stopTxt)+'): gesamte Position verkaufen':full?'Letzte Verkaufsstufe erreicht: Rest verkaufen':fails.length?'Template verletzt ('+fails.length+' von 7 Kursbedingungen): '+fails.slice(0,2).join('; ')+(fails.length>2?' und '+(fails.length-2)+' weitere':''):'Momentum-Ausstieg: '+mxr.join('; ');
+      if(mxr.length&&(pl.stopHit||full||fails.length))txt+='. Außerdem: '+mxr.join('; ');
       if(!full&&!pl.stopHit&&pl.hits>0&&pl.todo>0)txt+='. Zusätzlich Verkaufsstufe '+pl.hits+': '+pl.todo.toLocaleString('de-DE')+' Aktien verkaufen';
     }else if(pl.hits>0&&pl.todo>0){lv=1;txt='Verkaufsstufe '+pl.hits+' erreicht: '+pl.todo.toLocaleString('de-DE')+' Aktien verkaufen'}
     else{const nx=pl.st.find(s=>!s.hit);txt=(pl.hits>0?'Fällige Stufen erledigt. ':'')+'Template erfüllt'+(r.rs!=null?', RS '+r.rs:'')+(nx?'. Nächste Stufe bei '+px(nx.price)+' (+'+nx.lv+' %)':'')+'. Stop bei '+px(pl.stop)+(pl.stopTxt==='fix'?'':' ('+pl.stopTxt+')')+(pl.stopMiss?' (Trailing braucht Einstiegsdatum und neu geladene Kursdatei, bis dahin gilt der feste Stop)':'')}
@@ -568,19 +707,22 @@ function syncDaily(){
 function peLine(it){const d=it.dq&&it.dq.ok?it.dq:null;if(!d)return '';return `<div class="small mut" style="margin-top:4px">KGV: ${d.pe>0?f2(d.pe):'nicht verfügbar'}</div>`}
 function card(it,r){
   const z=r.st==='no'?null:size(it,r.p);
-  const badge=S.hold[it.t]?['','Im Depot']:r.st==='ok'?['ok','Kaufkandidat: neu, RS ab '+(S.cfg.rsm||80)]:r.st==='old'?['rs','Erfüllt, aber nicht neu']:r.st==='rs'?['rs','7 von 7 – RS-Rating fehlt']:['','Nicht erfüllt ('+r.cnt+' von 8)'];
+  const G=(r.st==='ok'||r.st==='rs')&&!S.hold[it.t]?gate(it,r):null;
+  const badge=S.hold[it.t]?['','Im Depot']:r.st==='ok'?(G&&!G.ok?['rs',G.mk?'Gesperrt: Marktfilter Rot':'Kein Kauf: Momentum-Regeln']:['ok','Kaufkandidat: neu, RS ab '+(S.cfg.rsm||80)]):r.st==='old'?['rs','Erfüllt, aber nicht neu']:r.st==='rs'?['rs','7 von 7 – RS-Rating fehlt']:['','Nicht erfüllt ('+r.cnt+' von 8)'];
   const ic=v=>v===true?'<span class="t">✓</span>':v===false?'<span class="f">✗</span>':'<span class="n">–</span>';
   let sz='';
-  if(r.st==='ok'||r.st==='rs'){
+  if(G&&!G.ok){
+    sz='<div class="size w"><div class="big">Kein Kauf</div>'+G.why.map(esc).join('<br>')+'</div>';
+  }else if(r.st==='ok'||r.st==='rs'){
     sz=z?(z.sh<1?'<div class="size w">Bei diesen Einstellungen ist keine ganze Aktie möglich. Erhöhe das Risiko oder die Positionsgrenze.</div>':
       `<div class="size"><div class="big">${z.sh.toLocaleString('de-DE')} Aktien · ${usd(z.pos)}</div>
-      ${f2(z.pct)} % vom Depot, Risiko ${usd(z.rk)} (${f2(z.rkp)} %)<br>
-      Einstieg ${px(z.en)}, Stop-Loss ${px(z.sl)}${z.cap?'<br>Begrenzt durch die maximale Positionsgröße.':''}</div>`)
+      ${f2(z.pct)} % vom Depot, ${z.mode==='atr'?'1 ATR ≙ '+usd(z.rk)+' ('+f2(z.rkp)+' % vom Depot, r = '+f2(S.cfg.rp)+' %)':'Risiko '+usd(z.rk)+' ('+f2(z.rkp)+' %)'}<br>
+      Einstieg ${px(z.en)}${z.sl!=null?', Stop-Loss '+px(z.sl):''}${z.cap?'<br>Begrenzt durch '+(z.mode==='atr'?'die Obergrenze von '+S.cfg.cap+' % vom Depot.':'die maximale Positionsgröße.'):''}${z.fb?'<br>ATR nicht verfügbar, die Größe ist nach Stop-Loss gerechnet.':''}</div>`)
       :'<div class="size w">Bitte Depot, Risiko, Stop-Loss und Maximalposition größer als 0 eintragen.</div>';
   }else sz='<div class="mut small">'+(r.st==='old'?'Kein Kaufkandidat: Das Trend Template ist nicht neu erfüllt.':'Kein Kaufkandidat, solange nicht alle Kriterien erfüllt sind.')+'</div>';
   return `<div class="card" data-t="${esc(it.t)}">
   <div class="top"><span><span class="tk">${esc(it.t)}</span>${nmH(it.t)}</span><span class="badge ${badge[0]}">${badge[1]}</span></div>
-  ${ttLine(it,r)}${boLine(it,r)}${volLine(it,r)}${peLine(it)}<div class="strip" aria-hidden="true">${r.t.map(x=>`<i class="${x[1]===true?'t':x[1]===false?'f':''}"></i>`).join('')}</div>
+  ${ttLine(it,r)}${boLine(it,r)}${volLine(it,r)}${momLine(it,r)}${peLine(it)}<div class="strip" aria-hidden="true">${r.t.map(x=>`<i class="${x[1]===true?'t':x[1]===false?'f':''}"></i>`).join('')}</div>
   <ul class="cr">${r.t.map(x=>`<li>${ic(x[1])}<span>${x[0]}</span></li>`).join('')}</ul>
   <div class="kv"><span>Kurs<b>${px(r.p)}</b></span><span>50 / 150 / 200<b>${[r.s50,r.s150,r.s200].map(v=>v?f2(v):'–').join(' / ')}</b></span><span>52-Wochen Tief / Hoch<b>${f2(r.lo)} / ${f2(r.hi)}</b><span class="mut">${eur2(r.lo)} / ${eur2(r.hi)}</span></span><span>Abstand zum 52-W-Hoch<b>${r.dist!=null?f2(r.dist)+' %':'–'}</b></span>${RK[it.t]?`<span>Stärke-Score<b>${RK[it.t].s}</b><span class="mut">Rang ${RK[it.t].r} von ${RK[it.t].n}</span></span>`:''}</div>
   ${it.qty>0&&it.en>0?'':sz}${planHtml(it,r.p)}
@@ -596,24 +738,47 @@ function breadth(off){
   vis().forEach(it=>{const c=it.c,L=c.length;if(L<200+off)return;const p=c[L-1-off],s50=sma(c,50,off),s200=sma(c,200,off);if(!s50||!s200)return;n++;if(p>s50)a50++;if(p>s200)a200++});
   return {n,a50:n?a50/n*100:0,a200:n?a200/n*100:0};
 }
+function mktIdxHtml(){
+  if(!MX)return '<p class="mut small" style="margin:0 0 10px">Indexfilter nicht verfügbar: S&amp;P 500 und VIX kommen mit den automatischen Kursdaten (GitHub-Automatik, Datei data/prices.json). Bei Excel- oder CSV-Daten gilt nur die Marktbreite unten.</p>';
+  const col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'],tx=['Neukäufe erlaubt','Neukäufe erlaubt, aber Investitionsgrad gesenkt','Keine Neukäufe'];
+  const ck=v=>v===true?'<span style="color:var(--ok)">✓</span>':v===false?'<span style="color:var(--bad)">✗</span>':'–';
+  const dfm=d=>new Date(d*864e5).toLocaleDateString('de-DE',{timeZone:'UTC'}),pc=(a,b)=>(a/b-1)*100,sg=v=>(v>=0?'+':'')+f2(v)+' %';
+  const eq=S.cfg.eq;
+  return `<div style="margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--bd)">
+  <p class="sum" style="margin:0 0 8px"><span class="dot" style="background:${col[MX.lv]}"></span> <b>Indexfilter ${nm[MX.lv]}</b> · ${tx[MX.lv]}${MX.block&&S.cfg.mf==='off'?' (Sperre in den Einstellungen aus)':''}</p>
+  <div class="small">S&amp;P 500 ${f2(MX.p)} (Stand ${dfm(MX.d)}) · 200-Tage-Linie ${f2(MX.s200)} (${sg(pc(MX.p,MX.s200))}) ${ck(MX.above200)}</div>
+  <div class="small" style="margin-top:2px">${MX.mAvg!=null?`Monatsende ${dfm(MX.mDate)}: Schlusskurs ${f2(MX.mCur)} gegen 10-Monats-Durchschnitt ${f2(MX.mAvg)} (${sg(pc(MX.mCur,MX.mAvg))}) ${ck(!MX.below)}`:'10-Monats-Durchschnitt: zu wenig Kursverlauf'}</div>
+  <div class="small" style="margin-top:2px">Abstand zum 52-Wochen-Hoch ${f1(MX.ddNow)} %${MX.hasVix?' · VIX '+f1(MX.vixNow):' · VIX nicht verfügbar'} · Volatilitätsbremse: ${MX.stage?esc(MX.stage):'aus'}</div>
+  <div class="small" style="margin-top:6px"><b>Empfohlener Investitionsgrad: bis ${MX.level} %</b>${eq>0?' (≙ '+usd(eq*MX.level/100)+' von '+usd(eq)+')':''}${MX.block?'. Zusätzlich keine Neukäufe: '+MX.why.map(esc).join('; ')+'.':''}</div>
+  <p class="mut small" style="margin:6px 0 0">Regeln aus der Trend-Momentum-Strategie. Die Schwellen der Volatilitätsbremse (${S.cfg.bd} % unter dem Hoch, VIX über ${S.cfg.bx}) und die 50 % bei Rot im Monatssignal sind Annahmen, keine Studienwerte.</p></div>`;
+}
 function renderMarket(res){
-  const b=breadth(0),b1=breadth(22),el=$('#mktbody');
-  if(b.n<50){S.mkt=null;el.innerHTML='<p class="mut small" style="margin:0">Für die Marktampel braucht die App mindestens 50 Aktien mit je 200 Handelstagen Kursverlauf. Geladen: '+b.n+'.</p>';return}
+  const b=breadth(0),b1=breadth(22),el=$('#mktbody'),ix=mktIdxHtml();
+  if(b.n<50){S.mkt=null;el.innerHTML=ix+'<p class="mut small" style="margin:0">Für die Marktampel braucht die App mindestens 50 Aktien mit je 200 Handelstagen Kursverlauf. Geladen: '+b.n+'.</p>';return}
   const mg=S.cfg.mg??60,mr=S.cfg.mr??45,lv=b.a200>=mg&&b.a50>=50?0:(b.a200<mr||b.a50<35)?2:1;
   S.mkt=lv;
   const tpl=res.filter(x=>x.r.t.slice(0,7).every(y=>y[1]===true)).length;
   const col=['var(--ok)','var(--yl)','var(--bad)'],nm=['Grün','Gelb','Rot'],tx=['Käufe erlaubt','Vorsicht, nur die stärksten Titel','Keine neuen Käufe'];
   const bar=(v,w)=>`<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span class="small" style="flex:0 0 140px">${w}</span><span class="bar"><i style="width:${Math.max(0,Math.min(100,v)).toFixed(0)}%"></i></span><b style="flex:0 0 78px;text-align:right;white-space:nowrap">${f2(v)} %</b></div>`;
-  el.innerHTML=`<p class="sum" style="margin:0 0 8px"><span class="dot" style="background:${col[lv]}"></span> <b>${nm[lv]}</b> · ${tx[lv]}</p>`+bar(b.a200,'über 200-Tage-Linie')+bar(b.a50,'über 50-Tage-Linie')+`<p class="mut small" style="margin:8px 0 0">${b1.n>=50?`Vor einem Monat: ${f2(b1.a200)} % über der 200-Tage-Linie, ${f2(b1.a50)} % über der 50-Tage-Linie. `:''}${tpl} von ${b.n} Aktien (${f2(tpl/b.n*100)} %) erfüllen die Kursbedingungen des Trend Templates. Grundlage sind die geladenen Aktien mit Schlusskursen, also die Breite deiner Liste und kein Index.</p>`;
+  el.innerHTML=ix+`<p class="sum" style="margin:0 0 8px"><span class="dot" style="background:${col[lv]}"></span> <b>Marktbreite ${nm[lv]}</b> · ${tx[lv]}</p>`+bar(b.a200,'über 200-Tage-Linie')+bar(b.a50,'über 50-Tage-Linie')+`<p class="mut small" style="margin:8px 0 0">${b1.n>=50?`Vor einem Monat: ${f2(b1.a200)} % über der 200-Tage-Linie, ${f2(b1.a50)} % über der 50-Tage-Linie. `:''}${tpl} von ${b.n} Aktien (${f2(tpl/b.n*100)} %) erfüllen die Kursbedingungen des Trend Templates. Grundlage sind die geladenen Aktien mit Schlusskursen, also die Breite deiner Liste und kein Index.</p>`;
 }
-function mktWarn(){return S.mkt===2?'<p class="sum" style="color:var(--bad)"><b>Marktampel Rot:</b> neue Käufe besser vermeiden.</p>':S.mkt===1?'<p class="sum" style="color:var(--warn)"><b>Marktampel Gelb:</b> nur die stärksten Titel kaufen.</p>':''}
+function mktWarn(){
+  let h='';
+  if(MX){
+    if(MX.block)h+=`<p class="sum" style="color:var(--bad)"><b>Marktfilter Rot (S&amp;P 500):</b> ${MX.why.map(esc).join('; ')}. ${S.cfg.mf==='off'?'Die Sperre ist in den Einstellungen abgeschaltet.':'Kaufkandidaten sind gesperrt.'}</p>`;
+    if(MX.level<100)h+=`<p class="sum" style="color:var(--warn)"><b>Empfohlener Investitionsgrad: ${MX.level} %</b>${MX.stage?' (Volatilitätsbremse '+esc(MX.stage)+')':''}</p>`;
+  }
+  return h+mktWarnB();
+}
+function mktWarnB(){return S.mkt===2?'<p class="sum" style="color:var(--bad)"><b>Marktampel Rot:</b> neue Käufe besser vermeiden.</p>':S.mkt===1?'<p class="sum" style="color:var(--warn)"><b>Marktampel Gelb:</b> nur die stärksten Titel kaufen.</p>':''}
 function boLine(it,r){
   if(!r.bo)return '';
   return `<div class="small" style="margin-top:6px;color:var(--ok)"><b>Ausbruchssignal:</b> Kurs ${f2(r.dist)} % unter dem 52-Wochen-Hoch, Tagesvolumen ${f2(r.rel)}× Ø</div>`;
 }
 function syncInputs(){
-  ['eq','risk','stop','max','np','fx','sw','sk','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{$('#'+k).value=S.cfg[k]});
+  ['eq','risk','stop','max','np','fx','sw','sk','rsm','nw','vh','vl','mg','mr','bo','bv','mt','mx','mp','lq','rp','cap','bd','bx'].forEach(k=>{$('#'+k).value=S.cfg[k]});
   $('#sell').value=S.cfg.sellTxt;$('#base').value=S.cfg.base;$('#sm').value=S.cfg.sm;
+  ['mf','mo','sz'].forEach(k=>{$('#'+k).value=S.cfg[k]});
 }
 function backupObj(){return {v:1,app:'minervini-screener',saved:new Date().toISOString().slice(0,10),cfg:S.cfg,hold:S.hold}}
 function applyBackup(txt){
@@ -640,7 +805,7 @@ function importPrices(j){
     s.c.forEach((v,i)=>{if(typeof v==='number'&&v>0){c.push(v);dd.push(D[i])}});
     if(c.length<200)continue;
     const w=Math.min(252,c.length),o=old.get(s.t);
-    items.push({t:s.t,c,dd:c.length===D.length?D:dd,hi:Math.max(...c.slice(-w)),lo:Math.min(...c.slice(-w)),rs:o&&o.rs!=null?o.rs:null,en:o&&o.en!=null?o.en:null,ix:s.ix,nm:s.n||'',tt:ttSince(c,dd.map(d=>d*864e5)),av:s.av>0?s.av:null});
+    items.push({t:s.t,c,dd:c.length===D.length?D:dd,hi:Math.max(...c.slice(-w)),lo:Math.min(...c.slice(-w)),rs:o&&o.rs!=null?o.rs:null,en:o&&o.en!=null?o.en:null,ix:s.ix,nm:s.n||'',tt:ttSince(c,dd.map(d=>d*864e5)),av:s.av>0?s.av:null,atr:s.atr>0?s.atr:null});
     daily[normT(s.t)]={p:s.p,hi:s.hi,lo:s.lo,pe:s.pe!=null?s.pe:null,vol:s.vol,avg:s.av};
   }
   const ts=new Set(items.map(x=>x.t));
@@ -661,7 +826,8 @@ async function autoLoad(force){
   }catch(e){return}
   if(!j||!Array.isArray(j.stocks)||!Array.isArray(j.dates))return;
   autoOK=true;$('#autorow').hidden=false;
-  if(!force&&S.meta&&S.meta.gen===j.generated&&S.items.some(x=>x.ix)){render();return}
+  MKT=j.mkt&&j.mkt.sp?j.mkt:null;
+  if(!force&&S.meta&&S.meta.gen===j.generated&&S.items.some(x=>x.ix)&&!S.items.some(x=>x.ix&&x.atr===undefined)){render();return}
   msg('Hole die aktuellen Kurse …');
   const n=importPrices(j);
   msg(n+' Aktien automatisch geladen (Stand '+j.asof+').'+(j.fx>0?' Wechselkurs: 1 € = '+j.fx.toLocaleString('de-DE',{minimumFractionDigits:4})+' $.':'')+(j.failed&&j.failed.length?'\nNicht abrufbar: '+j.failed.length+' Ticker.':''));
@@ -684,17 +850,20 @@ function renderStatus(){
   el.innerHTML=h;
 }
 function render(){
-  renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();syncHold();
+  renderStatus();renderIx();$('#eqe').textContent=S.cfg.eq>0?'≈ '+eur0(S.cfg.eq):'';syncDaily();const N=autoRS();buildMom();calcMarket();syncHold();
   const res0=vis().map(it=>{const r=calc(it);return {it,r,sg:sellSig(it,r.p),ts:it.tt&&r.t.slice(0,7).every(y=>y[1]===true)?it.tt.d:0}});
   buildRank(res0);
   const stdCmp=(a,b)=>b.r.rank-a.r.rank||b.ts-a.ts||b.r.cnt-a.r.cnt||(b.r.rs??0)-(a.r.rs??0),resStd=res0.slice().sort(stdCmp),res=sortRes(res0,stdCmp);
   SWAPS=swapPlan(resStd);renderDepot();renderSwapQ();renderSearch();
   renderMarket(res);if(!res.length){$('#out').innerHTML='<h2>Ergebnisse</h2><p class="mut" style="margin:0">Noch keine Aktien. Füge oben einen Ticker mit Kursdaten hinzu oder lade die Demo.</p>';return}
-  const all=resStd.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),cand=[];let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>S.cfg.eq)break;cand.push(z);tp0+=z.pos}
-  const tp=cand.reduce((s,z)=>s+z.pos,0),tr=cand.reduce((s,z)=>s+z.rk,0),eq=S.cfg.eq;
-  const sum=cand.length?`${all.length} Kandidat${all.length>1?'en':''}${cand.length<all.length?`, die ersten ${cand.length} in der Standardreihenfolge zusammen (begrenzt durch Depot und Max. Positionen)`:' zusammen'}: ${usd(tp)} (${f2(tp/eq*100)} % vom Depot), Gesamtrisiko ${usd(tr)} (${f2(tr/eq*100)} %).${tp>eq?' Das übersteigt dein Depot, wähle also nur die stärksten Titel.':''}`:'Aktuell kein Kandidat, der alle Kriterien erfüllt.';
+  const all0=resStd.filter(x=>(x.r.st==='ok'||x.r.st==='rs')&&!S.hold[x.it.t]),all1=all0.filter(x=>gate(x.it,x.r).ok),mo=S.cfg.mo!=='off';
+  const all=mo?all1.slice().sort((a,b)=>(MO[a.it.t]?MO[a.it.t].r:1e9)-(MO[b.it.t]?MO[b.it.t].r:1e9)):all1,cand=[];
+  const held=depotRows().filter(x=>x.lv<3).reduce((s,x)=>s+x.val,0),room=Math.max(0,S.cfg.eq*(MX?MX.level/100:1)-held);
+  let tp0=0;for(const x of all){const z=size(x.it,x.r.p);if(!z||z.sh<1)continue;if(cand.length>=Math.max(1,S.cfg.np||10)||tp0+z.pos>room)break;cand.push(z);tp0+=z.pos}
+  const tp=cand.reduce((s,z)=>s+z.pos,0),tr=cand.reduce((s,z)=>s+z.rk,0),eq=S.cfg.eq,blk=all0.length-all1.length;
+  const sum=(cand.length?`${all.length} Kandidat${all.length>1?'en':''}${cand.length<all.length?`, die ersten ${cand.length} ${mo?'nach Momentum-Score':'in der Standardreihenfolge'} zusammen (begrenzt durch Depot, Investitionsgrad und Max. Positionen)`:' zusammen'}: ${usd(tp)} (${f2(tp/eq*100)} % vom Depot), ${S.cfg.sz==='atr'?'Tagesschwankung (je 1 ATR)':'Gesamtrisiko'} ${usd(tr)} (${f2(tr/eq*100)} %).${tp>eq?' Das übersteigt dein Depot, wähle also nur die stärksten Titel.':''}`:all.length?`${all.length} Kandidat${all.length>1?'en':''}, aber im Rahmen von Depot, Investitionsgrad (${MX?MX.level:100} %) und bereits gehaltenen Positionen ist keine ganze Aktie möglich.`:'Aktuell kein Kandidat, der alle Kriterien erfüllt.')+(blk>0?` ${blk} Titel mit erfülltem Template ${blk>1?'sind':'ist'} gesperrt (Marktfilter oder Momentum-Regeln, die Gründe stehen in der Karte).`:'');
   const note=N>=2?`<p class="mut small">RS-Rating automatisch berechnet: Rang 1 bis 99 unter ${N} geladenen Aktien (Kursentwicklung der letzten 12 Monate, jüngstes Quartal doppelt gewichtet).${N<30?' Bei so wenigen Aktien hat der Rang wenig Aussagekraft, lade mehr Aktien für ein belastbares Rating.':''} Von dir eingetragene Werte haben Vorrang.</p>`:'<p class="mut small">Für das automatische RS-Rating braucht die App mindestens 2 Aktien mit je 253 Handelstagen (ca. 14 Monate Kursverlauf).</p>';
-  const bos=res.filter(x=>x.r.bo&&!S.hold[x.it.t]),sell=res.filter(x=>x.sg===2),top=res.filter(x=>x.r.st==='ok'&&x.ts&&!S.hold[x.it.t]),mx=Math.max(0,...top.map(x=>x.ts)),fresh=top.filter(x=>x.ts===mx);
+  const bos=res.filter(x=>x.r.bo&&!S.hold[x.it.t]&&!mktBlocked()),sell=res.filter(x=>x.sg===2),top=res.filter(x=>x.r.st==='ok'&&x.ts&&!S.hold[x.it.t]&&gate(x.it,x.r).ok),mx=Math.max(0,...top.map(x=>x.ts)),fresh=top.filter(x=>x.ts===mx);
   const lim=showAll?res.length:25,more=res.length-lim;
   $('#out').innerHTML='<h2>Ergebnisse</h2>'+(sell.length?`<p class="sum" style="color:var(--warn)"><b>${sell.length} Verkaufssignal${sell.length>1?'e':''}:</b> ${sell.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(fresh.length?`<p class="sum"><b>Zuletzt hinzugekommen (seit ${new Date(mx).toLocaleDateString('de-DE',{timeZone:'UTC'})}):</b> ${fresh.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+(Object.keys(S.swaps||{}).length?`<p class="sum" style="color:var(--warn)"><b>Tausch-Empfehlung:</b> ${Object.entries(S.swaps).map(([t,w])=>tkn(w.c.it.t)+' (Score '+w.c.sc+') statt '+tkn(t)+' (Score '+w.sc+')').join('; ')}</p>`:'')+(bos.length?`<p class="sum" style="color:var(--ok)"><b>Ausbruchssignale:</b> ${bos.map(x=>tkn(x.it.t)).join(', ')}</p>`:'')+mktWarn()+'<p class="sum">'+sum+'</p>'+note+(S.items.some(x=>x.av||(x.dq&&x.dq.ok))?'':'<p class="mut small">Für die Kennzahl Handelsvolumen braucht die Datei eine Volumen-Spalte, z. B. in Excel Datum, Schluss und Volumen je Ticker.</p>')+sortBar()+res.slice(0,lim).map(x=>card(x.it,x.r)).join('')+(more>0?`<div class="row"><button data-all>${more} weitere anzeigen</button></div>`:'');
 }
@@ -818,7 +987,7 @@ $('#demo').onclick=()=>{
   msg('Demo-Daten sind zufällig erzeugt und keine echten Kurse.');
 };
 
-['eq','risk','stop','max','np','fx','sw','sk','rsm','nw','vh','vl','mg','mr','bo','bv'].forEach(k=>{
+['eq','risk','stop','max','np','fx','sw','sk','rsm','nw','vh','vl','mg','mr','bo','bv','mt','mx','mp','lq','rp','cap','bd','bx'].forEach(k=>{
   const e=$('#'+k);e.value=S.cfg[k];
   e.oninput=()=>{const v=parseFloat(e.value);S.cfg[k]=isFinite(v)?v:0;save();render()};
 });
@@ -826,6 +995,7 @@ $('#demo').onclick=()=>{
 $('#sell').value=S.cfg.sellTxt;$('#sell').oninput=e=>{S.cfg.sellTxt=e.target.value;save();render()};
 $('#base').value=S.cfg.base;$('#base').onchange=e=>{S.cfg.base=e.target.value;save();render()};
 $('#sm').value=S.cfg.sm;$('#sm').onchange=e=>{S.cfg.sm=e.target.value;save();render()};
+['mf','mo','sz'].forEach(k=>{$('#'+k).value=S.cfg[k];$('#'+k).onchange=e=>{S.cfg[k]=e.target.value;save();render()}});
 $('#dlist').addEventListener('change',e=>{
   const t=e.target.dataset&&e.target.dataset.wkn;
   if(!t||!S.hold[t])return;

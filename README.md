@@ -44,6 +44,18 @@ In `update.yml` unter „Kursdaten holen“ kannst du die auskommentierten Zeile
 
 Welche Indizes gescreent werden, wählst du außerdem direkt in der App über die Häkchen. Aktien, die in beiden Indizes stehen, zählen zum S&P 500 und erscheinen nicht doppelt.
 
+## Trend-Momentum-Regeln
+
+Die App setzt zusätzlich die Regeln aus dem Doc „Trend-Momentum-Strategie für Aktien“ um. Alle Werte sind unter „Momentum-Strategie“ einstellbar, die Momentum-Regeln und die Marktsperre lassen sich abschalten (dann rechnet die App wie vorher).
+
+- **Indexfilter:** Das Skript holt täglich S&P 500 (`^GSPC`) und VIX (`^VIX`). Neukäufe sind gesperrt, wenn der S&P 500 unter seiner 200-Tage-Linie schließt oder zum letzten Monatsende unter dem 10-Monats-Durchschnitt lag. Bei Rot werden Kaufkandidaten gesperrt (die Karte nennt den Grund).
+- **Investitionsgrad:** bis 100 %, bei Monatssignal unter dem Durchschnitt bis 50 %. Volatilitätsbremse: Markt mehr als 10 % unter dem Hoch und VIX über 30 halbiert den Grad, danach Wiedereinstieg in Drittel pro Woche. Die Schwellen sind Annahmen.
+- **Momentum-Score:** Durchschnitt der Prozentränge von 12-1-Monats-Rendite und Clenow-Wert (annualisierte exponentielle Steigung über 90 Tage × R²). Kauf nur aus den besten 20 %, Ausstieg bei Rang schlechter als Top 30 %. Zusätzlich: Kurs über der 100-Tage-Linie, keine Tagesbewegung über 15 % in 90 Tagen, Kurs mindestens 10 $, Tagesumsatz mindestens 20 Mio. $.
+- **Positionsgröße:** Stück = Depot × r ÷ ATR(20), Standard r = 0,25 %, Obergrenze 15 % je Position. Das Skript berechnet die ATR(20) aus Hoch, Tief und Schluss und legt sie in `prices.json` ab. Wahlweise bleibt die bisherige Rechnung nach Stop-Loss.
+- **Depot-Ampel:** Zusätzlich Rot bei Kurs unter der 100-Tage-Linie, Rang schlechter als Top 30 % oder Kurslücke über 15 % im 90-Tage-Fenster.
+- Konnten S&P 500 oder VIX nicht geladen werden, läuft der Rest weiter. Die App zeigt dann nur die Marktbreite deiner Liste, und es gibt keine Marktsperre.
+- Die Rechenwege stehen in der App unter „So rechnet die App“. Das ist ein Regelwerk aus der Literatur und keine Anlageberatung. Backtests mit den heutigen Indexmitgliedern sind durch Survivorship Bias zu optimistisch.
+
 ## Wenn etwas nicht klappt
 
 - **Lauf schlägt fehl (roter Haken unter „Actions“):** den Lauf öffnen und die Meldung bei „Kursdaten holen“
