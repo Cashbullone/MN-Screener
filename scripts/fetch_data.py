@@ -66,15 +66,37 @@ def wiki_tables(url):
     return pd.read_html(io.StringIO(r.text))
 
 
-def pairs(df, tcol, ncol):
+SECTOR_MAP = {                      # abweichende Schreibweisen auf die GICS-Namen bringen
+    "technology": "Information Technology", "information technology": "Information Technology",
+    "healthcare": "Health Care", "health care": "Health Care",
+    "telecommunications": "Communication Services", "communication": "Communication Services",
+    "communication services": "Communication Services", "basic materials": "Materials", "materials": "Materials",
+    "consumer discretionary": "Consumer Discretionary", "consumer staples": "Consumer Staples",
+    "financials": "Financials", "financial": "Financials", "financial services": "Financials",
+    "industrials": "Industrials", "real estate": "Real Estate", "energy": "Energy", "utilities": "Utilities",
+}
+
+
+def norm_sector(x):
+    if not isinstance(x, str):
+        return ""
+    x = x.strip()
+    return SECTOR_MAP.get(x.lower(), x)
+
+
+def pairs(df, tcol, ncol, scol=None):
+    """Liste aus (Ticker, Name) oder, wenn eine Sektor-Spalte da ist, (Ticker, Name, Sektor)."""
     names = df[ncol] if ncol in df.columns else [""] * len(df)
-    return [(norm_ticker(t), str(n).strip() if isinstance(n, str) else "") for t, n in zip(df[tcol], names)]
+    out = [(norm_ticker(t), str(n).strip() if isinstance(n, str) else "") for t, n in zip(df[tcol], names)]
+    if scol is None or scol not in df.columns:
+        return out
+    return [(t, n, norm_sector(sec)) for (t, n), sec in zip(out, df[scol])]
 
 
 def universe_sp500():
     for t in wiki_tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"):
         if "Symbol" in t.columns and len(t) > 400:
-            return pairs(t, "Symbol", "Security")
+            return pairs(t, "Symbol", "Security", "GICS Sector")
     raise RuntimeError("Keine S&P-500-Tabelle gefunden")
 
 
@@ -89,13 +111,23 @@ def _col(t, names, contains=()):
     return None
 
 
+def _sector_col(t):
+    cols = {c: (" ".join(map(str, c)) if isinstance(c, tuple) else str(c)).strip().lower() for c in t.columns}
+    for key in ("gics sector", "sector", "icb industry", "industry"):
+        for c, n in cols.items():
+            if n == key:
+                return c
+    return None
+
+
 def ndx_html(url):
     seen = []
     for t in wiki_tables(url):
         tc = _col(t, ("ticker", "symbol", "ticker symbol"))
         seen.append("%dx%s:%s" % (len(t), len(t.columns), "/".join(str(c)[:12] for c in t.columns)[:60]))
         if tc is not None and 80 <= len(t) <= 130:
-            return pairs(t, tc, _col(t, ("company", "security", "name"), ("company", "security", "name")) or tc)
+            return pairs(t, tc, _col(t, ("company", "security", "name"), ("company", "security", "name")) or tc,
+                         _sector_col(t))
     raise RuntimeError("Keine Tabelle mit Ticker-Spalte. Gefunden: " + "; ".join(seen[:6]))
 
 
@@ -161,8 +193,9 @@ def parse_ishares_csv(text):
     if "Asset Class" in df.columns:
         df = df[df["Asset Class"].astype(str).str.strip().str.lower() == "equity"]
     df = df.dropna(subset=["Ticker"])
-    return [(norm_ticker(t), str(n).strip().title() if isinstance(n, str) else "")
-            for t, n in zip(df["Ticker"], df["Name"] if "Name" in df.columns else [""] * len(df))]
+    secs = df["Sector"] if "Sector" in df.columns else [""] * len(df)
+    return [(norm_ticker(t), str(n).strip().title() if isinstance(n, str) else "", norm_sector(sec))
+            for t, n, sec in zip(df["Ticker"], df["Name"] if "Name" in df.columns else [""] * len(df), secs)]
 
 
 def universe_r2000():
@@ -186,26 +219,28 @@ SOURCES = {"SP500": universe_sp500, "NDX": universe_ndx, "R2000": universe_r2000
 
 
 def build_universe():
-    ix_map, status, names = {}, {}, {}
+    ix_map, status, names, sectors = {}, {}, {}, {}
     for key in INDEXES:
         try:
-            rows = [(t, n) for t, n in SOURCES[key]() if t]
+            rows = [(r[0], r[1], norm_sector(r[2]) if len(r) > 2 else "") for r in SOURCES[key]() if r[0]]
             new = 0
-            for t, n in rows:
+            for t, n, sec in rows:
                 if t in ix_map:               # schon in einem vorrangigen Index: keine Doppelung
                     continue
                 ix_map[t] = {key}
                 new += 1
                 if n:
                     names[t] = n
-            status[key] = {"ok": True, "n": len(set(t for t, _ in rows)), "new": new}
+                if sec:
+                    sectors[t] = sec
+            status[key] = {"ok": True, "n": len(set(r[0] for r in rows)), "new": new}
             log("  %s: %d Ticker in der Liste, %d davon neu" % (key, status[key]["n"], new))
             notice("%s: %d Ticker in der Liste, %d davon neu" % (key, status[key]["n"], new))
         except Exception as e:
             status[key] = {"ok": False, "error": str(e)[:200]}
             log("  %s: FEHLER %s" % (key, e))
             notice("%s: Liste nicht lesbar: %s" % (key, str(e)[:150]), "warning")
-    return ix_map, status, names
+    return ix_map, status, names, sectors
 
 
 def fetch_fx():
@@ -297,7 +332,8 @@ def atr20(d, n=ATR_N):
         return None
 
 
-def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_VOL, keep=KEEP, drop_after=None):
+def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_VOL, keep=KEEP, drop_after=None,
+             sectors=None):
     """Baut das Ausgabeformat. raw: {Ticker: DataFrame mit Close, High, Low, Volume}."""
     frames = {}
     for t, df in raw.items():
@@ -339,6 +375,7 @@ def assemble(raw, ix_map, names=None, min_price=MIN_PRICE, min_avg_vol=MIN_AVG_V
             "t": t,
             "n": (names or {}).get(t, ""),
             "ix": sorted(ix_map.get(t, [])),
+            "sec": (sectors or {}).get(t, ""),
             "c": [None if num(v) is None else round(float(v), 2) for v in close],
             "p": round(p, 2),
             "hi": round(float(w["High"].max()), 2),
@@ -406,7 +443,7 @@ def last_complete_day():
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     log("Indexlisten holen")
-    ix_map, status, names = build_universe()
+    ix_map, status, names, sectors = build_universe()
     tickers = sorted(ix_map)
     if not tickers:
         log("Keine Ticker gefunden, Abbruch.")
@@ -414,11 +451,15 @@ def main():
         return 1
     log("%d verschiedene Ticker, lade Kurse" % len(tickers))
     raw, failed = download(tickers)
-    payload = assemble(raw, ix_map, names, drop_after=last_complete_day())
+    payload = assemble(raw, ix_map, names, drop_after=last_complete_day(), sectors=sectors)
     if not payload or len(payload["stocks"]) < MIN_STOCKS:
         log("Nur %d Aktien aufbereitet (Minimum %d), Abbruch." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS))
         notice("Nur %d Aktien aufbereitet, Minimum %d. Abgerufen: %d von %d Ticker." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS, len(raw), len(tickers)), "error")
         return 1
+    n_sec = sum(1 for x in payload["stocks"] if x.get("sec"))
+    log("  Sektor bei %d von %d Aktien bekannt" % (n_sec, len(payload["stocks"])))
+    if n_sec < len(payload["stocks"]) * 0.5:
+        notice("Sektor nur bei %d von %d Aktien bekannt, die Sektorgrenze in der App greift dort nicht." % (n_sec, len(payload["stocks"])), "warning")
     payload["failed"] = failed[:300]
     payload["fx"] = fetch_fx()
     payload["mkt"] = fetch_market(last_complete_day())
