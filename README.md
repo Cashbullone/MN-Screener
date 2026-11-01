@@ -59,6 +59,15 @@ Die App setzt zusätzlich die Regeln aus dem Doc „Trend-Momentum-Strategie fü
 - Konnten S&P 500 oder VIX nicht geladen werden, läuft der Rest weiter. Die App zeigt dann nur die Marktbreite deiner Liste, und es gibt keine Marktsperre.
 - Die Rechenwege stehen in der App unter „So rechnet die App“. Das ist ein Regelwerk aus der Literatur und keine Anlageberatung. Backtests mit den heutigen Indexmitgliedern sind durch Survivorship Bias zu optimistisch.
 
+## Ranglisten
+
+Oben in der App (Bereich „Ranglisten“) stehen zwei getrennte Top-15-Listen über alle geladenen Aktien:
+
+- **Rangliste nach Minervini:** nur Aktien mit voll erfülltem Trend Template (Kriterien 1 bis 7 und RS-Rating mindestens wie eingestellt, egal ob neu oder schon länger erfüllt), sortiert nach dem Stärke-Score (60 % RS-Rating, 40 % Nähe zum 52-Wochen-Hoch).
+- **Rangliste nach Trendstärke:** alle Aktien nach dem Momentum-Score (Durchschnitt der Prozentränge von 12-1-Monats-Rendite und Clenow-Wert), auch wenn sie das Template nicht erfüllen.
+
+Jede Zeile zeigt Sektor, die wichtigsten Kennzahlen, den Rang in der jeweils anderen Liste und den Kaufstatus (Marktfilter und Momentum-Regeln wie bei den Kandidaten). Ein Tipp auf die Zeile öffnet unten alle Daten der Aktie. Die Listen folgen den abgewählten Indizes und sind eine Rangfolge, keine Kaufempfehlung.
+
 ## Wenn etwas nicht klappt
 
 - **Lauf schlägt fehl (roter Haken unter „Actions“):** den Lauf öffnen und die Meldung bei „Kursdaten holen“
