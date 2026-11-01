@@ -74,6 +74,7 @@ SECTOR_MAP = {                      # abweichende Schreibweisen auf die GICS-Nam
     "consumer discretionary": "Consumer Discretionary", "consumer staples": "Consumer Staples",
     "financials": "Financials", "financial": "Financials", "financial services": "Financials",
     "industrials": "Industrials", "real estate": "Real Estate", "energy": "Energy", "utilities": "Utilities",
+    "consumer cyclical": "Consumer Discretionary", "consumer defensive": "Consumer Staples",   # Yahoo-Namen
 }
 
 
@@ -432,6 +433,64 @@ def fetch_market(drop_after=None):
         return None
 
 
+SECTOR_FILE = os.path.join(os.path.dirname(__file__), "..", "universe", "sectors.csv")
+SECTOR_BUDGET_S = 120       # so lange darf der Yahoo-Ersatzabruf höchstens dauern
+
+
+def load_sector_file(path=None):
+    """universe/sectors.csv: eine Zeile je Aktie, 'TICKER,Sektor'. Für Werte, die weder die Indexliste noch Yahoo kennen."""
+    path = path or SECTOR_FILE
+    out = {}
+    if not os.path.exists(path):
+        return out
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.split("#")[0].strip()
+            if "," not in line:
+                continue
+            t, sec = [x.strip() for x in line.split(",", 1)]
+            t = norm_ticker(t)
+            if t and sec:
+                out[t] = norm_sector(sec)
+    return out
+
+
+def yahoo_sector(t):
+    """Sektor einer Aktie von Yahoo (Namen werden auf GICS-Namen angeglichen). Leer, wenn nicht abrufbar."""
+    import yfinance as yf
+    for attempt in range(2):
+        try:
+            sec = norm_sector((yf.Ticker(t).info or {}).get("sector"))
+            if sec:
+                return sec
+        except Exception as e:
+            log("  Sektor %s: %s" % (t, str(e)[:80]))
+        time.sleep(1.5)
+    return ""
+
+
+def fill_sectors(stocks, budget=SECTOR_BUDGET_S, path=None):
+    """Ergänzt fehlende Sektoren: zuerst aus universe/sectors.csv, dann einzeln von Yahoo. Gibt die Anzahl ergänzter Aktien zurück."""
+    miss = [s for s in stocks if not s.get("sec")]
+    if not miss:
+        return 0
+    fixed, got, t0 = load_sector_file(path), 0, time.time()
+    for s in miss:                                   # zuerst die eigene Datei, die kostet keine Zeit
+        if s["t"] in fixed:
+            s["sec"] = fixed[s["t"]]
+            got += 1
+    for s in [x for x in miss if not x["sec"]]:
+        if time.time() - t0 > budget:
+            log("  Zeitbudget für Sektorabruf erreicht")
+            break
+        v = yahoo_sector(s["t"])
+        if v:
+            s["sec"] = v
+            got += 1
+        time.sleep(0.5)
+    return got
+
+
 def last_complete_day():
     """Letzter abgeschlossener US-Börsentag: Ist es in New York noch vor 16:30 Uhr, zählt der heutige Tag nicht."""
     from zoneinfo import ZoneInfo
@@ -456,10 +515,12 @@ def main():
         log("Nur %d Aktien aufbereitet (Minimum %d), Abbruch." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS))
         notice("Nur %d Aktien aufbereitet, Minimum %d. Abgerufen: %d von %d Ticker." % (len(payload["stocks"]) if payload else 0, MIN_STOCKS, len(raw), len(tickers)), "error")
         return 1
+    n_extra = fill_sectors(payload["stocks"])
     n_sec = sum(1 for x in payload["stocks"] if x.get("sec"))
-    log("  Sektor bei %d von %d Aktien bekannt" % (n_sec, len(payload["stocks"])))
-    if n_sec < len(payload["stocks"]) * 0.5:
-        notice("Sektor nur bei %d von %d Aktien bekannt, die Sektorgrenze in der App greift dort nicht." % (n_sec, len(payload["stocks"])), "warning")
+    unknown = [x["t"] for x in payload["stocks"] if not x.get("sec")]
+    log("  Sektor bei %d von %d Aktien bekannt (%d nachträglich ergänzt)" % (n_sec, len(payload["stocks"]), n_extra))
+    if unknown:
+        notice("Sektor unbekannt bei %d Aktien: %s. Trage sie in universe/sectors.csv ein (Zeile: TICKER,Sektor)." % (len(unknown), ", ".join(unknown[:15]) + (" …" if len(unknown) > 15 else "")), "warning")
     payload["failed"] = failed[:300]
     payload["fx"] = fetch_fx()
     payload["mkt"] = fetch_market(last_complete_day())
